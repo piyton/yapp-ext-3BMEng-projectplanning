@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchAll, getErpNextAppUrl } from "../lib/yappBridge";
+import { fetchAll, getErpNextAppUrl, createDocument } from "../lib/yappBridge";
 import { buildProjectView } from "../lib/phaseDetection";
 import { classifyProject } from "../lib/classification";
 import { useSettings } from "../lib/settings";
@@ -268,7 +268,7 @@ export default function Projectplanning() {
             onToggleChecklist={(item, next) => {
               const taskName = item.source.taskName;
               const task = tasks.find((t) => t.name === taskName);
-              if (task) mutations.toggleDone(task, next);
+              if (task) mutations.toggleChecklistItem(task, item, next);
             }}
             onToggleSubtask={(subtask, next) => {
               const task = tasks.find((t) => t.name === subtask.taskName);
@@ -301,6 +301,14 @@ export default function Projectplanning() {
             onSetPhaseStatus={(phase, status) => {
               const target = tasks.find((t) => t.name === phase.taskName);
               if (target) mutations.setStatus(target, status);
+            }}
+            onAddAdhocTask={async (projectName, subject) => {
+              await createDocument("Task", {
+                subject,
+                project: projectName,
+                status: "Open",
+              });
+              setReloadToken((t) => t + 1);
             }}
           />
         ))}

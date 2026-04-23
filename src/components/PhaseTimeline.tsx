@@ -28,6 +28,19 @@ function connectorClass(status: PhaseStatus | TransitionStatus | "active"): stri
   return "bg-[repeating-linear-gradient(90deg,_#d1d5db_0_6px,_transparent_6px_12px)]";
 }
 
+/**
+ * Tailwind-kleurcode (voor SVG `fill`) corresponderend met `connectorClass`.
+ * Gebruikt dezelfde tinten zodat de pijl-driehoek exact aansluit op de
+ * connector-balk.
+ */
+function connectorHex(status: PhaseStatus | TransitionStatus | "active"): string {
+  if (status === "compleet") return "var(--color-green-3bm-soft)";
+  if (status === "afgerond") return "var(--color-green-3bm)";
+  if (status === "actief" || status === "active") return "var(--color-purple-3bm)";
+  if (status === "items-missen") return "var(--color-amber-3bm)";
+  return "#d1d5db";
+}
+
 function phaseOpenCount(p: Phase): number {
   return (
     p.werk.filter((x) => !x.done).length +
@@ -86,8 +99,6 @@ export default function PhaseTimeline({ items, activeIndex, onNavigate, compact 
   }
 
   const dotSize = compact ? "w-[28px] h-[28px] text-[10px]" : "w-[40px] h-[40px] text-[11px]";
-  // Gebruik flex-1 op de connectors zodat ze de beschikbare grid-kolom opvullen.
-  const connectorWidth = compact ? "flex-1 min-w-[12px] mx-0.5" : "flex-1 min-w-[16px] mx-1";
 
   return (
     <div className="flex items-center gap-0 flex-nowrap w-full">
@@ -121,43 +132,66 @@ export default function PhaseTimeline({ items, activeIndex, onNavigate, compact 
                   </span>
                 )}
               </button>
-              {i < items.length - 1 && (
-                <div
-                  className={`h-[3px] ${connectorWidth} ${connectorClass(item.phase.status)}`}
-                />
-              )}
+              {i < items.length - 1 && (() => {
+                // Kleur van de connector-stub direct ná de bol: match met
+                // de volgende overgangspijl (indien aanwezig), anders fase-status.
+                const nextItem = items[i + 1];
+                const stubStatus = nextItem && nextItem.kind === "transition"
+                  ? nextItem.transition.status
+                  : item.phase.status;
+                return (
+                  <div
+                    className={`h-[3px] w-[8px] flex-shrink-0 ${connectorClass(stubStatus)}`}
+                  />
+                );
+              })()}
             </div>
           );
         }
-        // transition — alleen een pijltje, geen bol
-        const arrowColor =
-          item.transition.status === "compleet"      ? "text-green-700"
-          : item.transition.status === "items-missen" ? "text-amber-700"
-          :                                             "text-gray-400";
-        const arrowSize = compact ? "text-[14px]" : "text-lg";
+        // transition — geïntegreerde pijl: connector-balk met ingebouwde
+        // driehoek in dezelfde kleur, vormt visueel één lijn tussen de bollen.
+        const color = connectorHex(item.transition.status);
+        const arrowHeight = compact ? 14 : 18;
         return (
-          <div key={`t-${item.transition.from}-${item.transition.to}`} className="flex items-center flex-shrink-0">
+          <div key={`t-${item.transition.from}-${item.transition.to}`} className="flex items-center flex-shrink-0 flex-1 min-w-[32px]">
             <button
               type="button"
               onClick={() => onNavigate(item.index)}
               aria-label={`Overgang ${item.transition.from}→${item.transition.to}`}
-              className={`${arrowSize} ${arrowColor} relative cursor-pointer flex-shrink-0 px-1 leading-none font-bold ${
+              className={`relative cursor-pointer w-full h-[${arrowHeight}px] flex items-center justify-stretch group hover:brightness-110 transition ${
                 isActive ? "ring-1 ring-purple-3bm ring-offset-1 rounded" : ""
-              } hover:opacity-70`}
+              }`}
+              style={{ height: arrowHeight }}
               title={`Overgang ${item.transition.from}→${item.transition.to}`}
             >
-              →
+              <svg
+                width="100%"
+                height={arrowHeight}
+                viewBox={`0 0 100 ${arrowHeight}`}
+                preserveAspectRatio="none"
+                className="block overflow-visible"
+                aria-hidden="true"
+              >
+                {/* Doorlopende balk van links naar net vóór de pijlpunt */}
+                <rect
+                  x="0"
+                  y={(arrowHeight - 3) / 2}
+                  width="88"
+                  height="3"
+                  fill={color}
+                />
+                {/* Driehoekige pijlpunt — zelfde kleur, breed aansluitend op balk */}
+                <polygon
+                  points={`88,0 100,${arrowHeight / 2} 88,${arrowHeight}`}
+                  fill={color}
+                />
+              </svg>
               {item.openCount > 0 && (
-                <span className="absolute -top-2 -right-1 bg-amber-3bm text-white text-[8px] font-bold rounded-full min-w-[12px] h-[12px] px-0.5 flex items-center justify-center leading-none">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-amber-3bm text-white text-[8px] font-bold rounded-full min-w-[12px] h-[12px] px-0.5 flex items-center justify-center leading-none">
                   {item.openCount}
                 </span>
               )}
             </button>
-            {i < items.length - 1 && (
-              <div
-                className={`h-[3px] ${connectorWidth} ${connectorClass(item.transition.status)}`}
-              />
-            )}
           </div>
         );
       })}

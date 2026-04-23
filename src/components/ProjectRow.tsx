@@ -27,6 +27,7 @@ interface Props {
   onEditSubtask?: (subtask: SubtaskItem, newSubject: string) => void;
   onStartPhase?: (phase: Phase, projectName: string) => void;
   onSetPhaseStatus?: (phase: Phase, status: string) => void;
+  onAddAdhocTask?: (projectName: string, subject: string) => Promise<void> | void;
 }
 
 function templateBadge(template: ProjectView["template"]): { label: string; cls: string } {
@@ -65,10 +66,26 @@ function firstOpenPhaseIndex(items: ReturnType<typeof buildTimelineItems>): numb
 export default function ProjectRow({
   view, erpnextUrl, settings, assigneesByTask, userNames, rawStatusByTaskName,
   onToggleChecklist, onToggleSubtask, onEditSubtask,
-  onStartPhase, onSetPhaseStatus,
+  onStartPhase, onSetPhaseStatus, onAddAdhocTask,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [adhocOpen, setAdhocOpen] = useState(false);
+  const [adhocDraft, setAdhocDraft] = useState("");
+  const [adhocSaving, setAdhocSaving] = useState(false);
+
+  const submitAdhoc = async () => {
+    const subject = adhocDraft.trim();
+    if (!subject || !onAddAdhocTask) return;
+    setAdhocSaving(true);
+    try {
+      await onAddAdhocTask(view.project.name, subject);
+      setAdhocDraft("");
+      setAdhocOpen(false);
+    } finally {
+      setAdhocSaving(false);
+    }
+  };
 
   const urgencyByPhaseTask = useMemo(() => {
     const m = new Map<string, UrgencyLevel>();
@@ -227,12 +244,62 @@ export default function ProjectRow({
               onSetPhaseStatus={onSetPhaseStatus}
             />
           )}
-          {view.adhocTasks.length > 0 && (
-            <div className="mt-3 text-[11px] text-gray-500">
-              <span className="font-semibold">{view.adhocTasks.length} ad-hoc taken</span>{" "}
-              (buiten fase-structuur):{" "}
-              {view.adhocTasks.slice(0, 3).map((t) => t.subject.trim()).join(" · ")}
-              {view.adhocTasks.length > 3 ? " …" : ""}
+          <div className="mt-3 flex items-start gap-2 text-[11px] text-gray-500">
+            <div className="flex-1">
+              {view.adhocTasks.length > 0 && (
+                <>
+                  <span className="font-semibold">{view.adhocTasks.length} ad-hoc taken</span>{" "}
+                  (buiten fase-structuur):{" "}
+                  {view.adhocTasks.slice(0, 3).map((t) => t.subject.trim()).join(" · ")}
+                  {view.adhocTasks.length > 3 ? " …" : ""}
+                </>
+              )}
+              {view.adhocTasks.length === 0 && (
+                <span className="italic text-gray-400">Geen ad-hoc taken</span>
+              )}
+            </div>
+            {onAddAdhocTask && !adhocOpen && (
+              <button
+                type="button"
+                onClick={() => setAdhocOpen(true)}
+                className="text-[11px] px-2 py-0.5 border border-purple-3bm text-purple-3bm rounded hover:bg-purple-3bm hover:text-white transition"
+                title="Voeg een ad-hoc taak toe aan dit project"
+              >
+                + Ad-hoc taak
+              </button>
+            )}
+          </div>
+          {adhocOpen && onAddAdhocTask && (
+            <div className="mt-2 flex items-center gap-2">
+              <input
+                type="text"
+                autoFocus
+                value={adhocDraft}
+                onChange={(e) => setAdhocDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); submitAdhoc(); }
+                  if (e.key === "Escape") { e.preventDefault(); setAdhocOpen(false); setAdhocDraft(""); }
+                }}
+                placeholder="Onderwerp ad-hoc taak…"
+                disabled={adhocSaving}
+                className="flex-1 text-xs border border-purple-3bm/40 rounded px-2 py-1 focus:outline-none focus:border-purple-3bm"
+              />
+              <button
+                type="button"
+                onClick={submitAdhoc}
+                disabled={adhocSaving || !adhocDraft.trim()}
+                className="text-[11px] px-2 py-1 bg-purple-3bm text-white rounded hover:opacity-90 disabled:opacity-40"
+              >
+                {adhocSaving ? "…" : "Toevoegen"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAdhocOpen(false); setAdhocDraft(""); }}
+                disabled={adhocSaving}
+                className="text-[11px] text-gray-500 hover:text-gray-800"
+              >
+                Annuleren
+              </button>
             </div>
           )}
         </div>

@@ -77,6 +77,13 @@ export function updateDocument<T>(
   return call<T>("updateDocument", [doctype, name, data]);
 }
 
+export function createDocument<T>(
+  doctype: string,
+  data: Record<string, unknown>,
+): Promise<T> {
+  return call<T>("createDocument", [doctype, data]);
+}
+
 export function callMethod<T>(method: string, args: Record<string, unknown> = {}): Promise<T> {
   return call<T>("callMethod", [method, args]);
 }

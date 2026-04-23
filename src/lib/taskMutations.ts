@@ -9,7 +9,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import { updateDocument } from "./yappBridge";
-import type { TaskRecord } from "../types";
+import { toggleChecklistItemInHtml, uncheckAllInHtml } from "./descriptionToggle";
+import type { ChecklistItem, TaskRecord } from "../types";
 
 export type TaskOverlay = Map<string, Partial<TaskRecord>>;
 
@@ -27,6 +28,7 @@ export function applyOverlayAll(tasks: TaskRecord[], overlay: TaskOverlay): Task
 export interface TaskMutations {
   overlay: TaskOverlay;
   toggleDone: (task: TaskRecord, nextDone: boolean) => Promise<void>;
+  toggleChecklistItem: (task: TaskRecord, item: ChecklistItem, nextDone: boolean) => Promise<void>;
   updateSubject: (task: TaskRecord, newSubject: string) => Promise<void>;
   setStatus: (task: TaskRecord, status: string) => Promise<void>;
   startPhase: (task: TaskRecord, otherWorking: TaskRecord[]) => Promise<void>;
@@ -61,9 +63,13 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     if (inFlight.current.has(task.name)) return;
     inFlight.current.add(task.name);
     const nextStatus = nextDone ? "Completed" : "Open";
-    apply(task.name, { status: nextStatus });
+    const patch: Partial<TaskRecord> = { status: nextStatus };
+    if (nextDone && task.description) {
+      patch.description = uncheckAllInHtml(task.description);
+    }
+    apply(task.name, patch);
     try {
-      await updateDocument("Task", task.name, { status: nextStatus });
+      await updateDocument("Task", task.name, patch as Record<string, unknown>);
       onServerChange?.();
       // Laat overlay nog even staan; de volgende fetch brengt de echte status
       // binnen en we kunnen dan opschonen. Simpele aanpak: overlay clear zodra
@@ -74,6 +80,37 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       inFlight.current.delete(task.name);
+    }
+  }, [apply, clear, onServerChange]);
+
+  /**
+   * Flip één checklist-item (sub-todo) in de description van een task,
+   * zonder de Task-status te wijzigen.
+   */
+  const toggleChecklistItem = useCallback(async (
+    task: TaskRecord,
+    item: ChecklistItem,
+    nextDone: boolean,
+  ) => {
+    const key = `${task.name}::${item.id}`;
+    if (inFlight.current.has(key)) return;
+    inFlight.current.add(key);
+    try {
+      const currentDesc = task.description ?? "";
+      const nextDesc = toggleChecklistItemInHtml(
+        currentDesc,
+        item.source.section,
+        item.source.itemIndex,
+        nextDone,
+      );
+      apply(task.name, { description: nextDesc });
+      await updateDocument("Task", task.name, { description: nextDesc });
+      onServerChange?.();
+    } catch (e) {
+      clear(task.name);
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      inFlight.current.delete(key);
     }
   }, [apply, clear, onServerChange]);
 
@@ -98,9 +135,13 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     if (task.status === status) return;
     if (inFlight.current.has(task.name)) return;
     inFlight.current.add(task.name);
-    apply(task.name, { status });
+    const patch: Partial<TaskRecord> = { status };
+    if (status === "Completed" && task.description) {
+      patch.description = uncheckAllInHtml(task.description);
+    }
+    apply(task.name, patch);
     try {
-      await updateDocument("Task", task.name, { status });
+      await updateDocument("Task", task.name, patch as Record<string, unknown>);
       onServerChange?.();
     } catch (e) {
       clear(task.name);
@@ -129,5 +170,5 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { overlay, toggleDone, updateSubject, setStatus, startPhase, error, clearError };
+  return { overlay, toggleDone, toggleChecklistItem, updateSubject, setStatus, startPhase, error, clearError };
 }
