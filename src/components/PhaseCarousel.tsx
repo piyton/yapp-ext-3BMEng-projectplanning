@@ -81,41 +81,42 @@ export default function PhaseCarousel({
 
   const handlers = { onToggleChecklist, onToggleSubtask, onEditSubtask, onStartPhase, onSetPhaseStatus };
 
-  return (
-    <div className="flex items-start gap-0 mt-3">
-      <button
-        type="button"
-        onClick={() => prev && onNavigate(activeIndex - 1)}
-        disabled={!prev}
-        className={`px-2 pt-8 text-2xl text-purple-3bm select-none sticky top-2 self-start ${
-          prev ? "cursor-pointer hover:opacity-70" : "text-gray-300 cursor-default"
-        }`}
-        aria-label="Vorige"
-      >
-        ◀
-      </button>
+  const navBtn = (direction: "prev" | "next", enabled: boolean, label: string, glyph: string) => (
+    <button
+      type="button"
+      onClick={() => {
+        if (!enabled) return;
+        onNavigate(direction === "prev" ? activeIndex - 1 : activeIndex + 1);
+      }}
+      disabled={!enabled}
+      aria-label={label}
+      className={`flex-shrink-0 self-stretch flex items-center justify-center w-7 text-xl select-none ${
+        enabled
+          ? "text-purple-3bm cursor-pointer hover:bg-purple-3bm/10"
+          : "text-gray-300 cursor-default"
+      }`}
+    >
+      {glyph}
+    </button>
+  );
 
+  return (
+    <div className="flex items-stretch gap-0 mt-3">
       <div className="flex-[0.7] overflow-hidden pointer-events-none min-w-0">
         {prev ? renderItem(prev, { faded: true, erpnextUrl, settings, rawStatusByTaskName, handlers }) : null}
       </div>
+
+      {navBtn("prev", !!prev, "Vorige", "◀")}
+
       <div className="flex-[1.6] min-w-0">
         {renderItem(current, { faded: false, erpnextUrl, settings, rawStatusByTaskName, handlers })}
       </div>
+
+      {navBtn("next", !!next, "Volgende", "▶")}
+
       <div className="flex-[0.7] overflow-hidden pointer-events-none min-w-0">
         {next ? renderItem(next, { faded: true, erpnextUrl, settings, rawStatusByTaskName, handlers }) : null}
       </div>
-
-      <button
-        type="button"
-        onClick={() => next && onNavigate(activeIndex + 1)}
-        disabled={!next}
-        className={`px-2 pt-8 text-2xl text-purple-3bm select-none sticky top-2 self-start ${
-          next ? "cursor-pointer hover:opacity-70" : "text-gray-300 cursor-default"
-        }`}
-        aria-label="Volgende"
-      >
-        ▶
-      </button>
     </div>
   );
 }
