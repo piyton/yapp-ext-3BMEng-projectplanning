@@ -50,9 +50,12 @@ export default function Projectplanning() {
 
   const mutations = useTaskMutations(() => setReloadToken((t) => t + 1));
 
-  const loadData = useCallback(async (signal: { cancelled: boolean }) => {
+  const loadData = useCallback(async (
+    signal: { cancelled: boolean },
+    opts: { silent?: boolean } = {},
+  ) => {
     try {
-      setLoading(true);
+      if (!opts.silent) setLoading(true);
       setError(null);
 
       const projectFilters: unknown[][] = [];
@@ -111,14 +114,17 @@ export default function Projectplanning() {
     } catch (e) {
       if (!signal.cancelled) setError(e instanceof Error ? e.message : String(e));
     } finally {
-      if (!signal.cancelled) setLoading(false);
+      if (!signal.cancelled && !opts.silent) setLoading(false);
     }
   }, [settings.company, settings.projectStatuses]);
 
   useEffect(() => {
     if (!settingsReady) return;
     const signal = { cancelled: false };
-    loadData(signal);
+    // Eerste load toont de "Laden…" spinner; reloads (getriggerd door een
+    // mutation) gebeuren stil — de optimistic overlay bewaart de UI-state
+    // en we willen de carousel/expanded-state niet kwijt.
+    loadData(signal, { silent: reloadToken > 0 });
     return () => { signal.cancelled = true; };
   }, [settingsReady, loadData, reloadToken]);
 
