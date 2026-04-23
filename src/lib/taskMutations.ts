@@ -64,8 +64,11 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     inFlight.current.add(task.name);
     const nextStatus = nextDone ? "Completed" : "Open";
     const patch: Partial<TaskRecord> = { status: nextStatus };
-    if (nextDone && task.description) {
-      patch.description = uncheckAllInHtml(task.description);
+    if (nextDone) {
+      // Pak de meest recente description uit de overlay (eerdere item-
+      // toggles kunnen nog niet zijn teruggekomen via fetch).
+      const currentDesc = overlay.get(task.name)?.description ?? task.description;
+      if (currentDesc) patch.description = uncheckAllInHtml(currentDesc);
     }
     apply(task.name, patch);
     try {
@@ -81,7 +84,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     } finally {
       inFlight.current.delete(task.name);
     }
-  }, [apply, clear, onServerChange]);
+  }, [apply, clear, onServerChange, overlay]);
 
   /**
    * Flip één checklist-item (sub-todo) in de description van een task,
@@ -96,7 +99,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     if (inFlight.current.has(key)) return;
     inFlight.current.add(key);
     try {
-      const currentDesc = task.description ?? "";
+      const currentDesc = overlay.get(task.name)?.description ?? task.description ?? "";
       const nextDesc = toggleChecklistItemInHtml(
         currentDesc,
         item.source.section,
@@ -112,7 +115,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     } finally {
       inFlight.current.delete(key);
     }
-  }, [apply, clear, onServerChange]);
+  }, [apply, clear, onServerChange, overlay]);
 
   const updateSubject = useCallback(async (task: TaskRecord, newSubject: string) => {
     const trimmed = newSubject.trim();
@@ -136,8 +139,9 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     if (inFlight.current.has(task.name)) return;
     inFlight.current.add(task.name);
     const patch: Partial<TaskRecord> = { status };
-    if (status === "Completed" && task.description) {
-      patch.description = uncheckAllInHtml(task.description);
+    if (status === "Completed") {
+      const currentDesc = overlay.get(task.name)?.description ?? task.description;
+      if (currentDesc) patch.description = uncheckAllInHtml(currentDesc);
     }
     apply(task.name, patch);
     try {
@@ -149,7 +153,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     } finally {
       inFlight.current.delete(task.name);
     }
-  }, [apply, clear, onServerChange]);
+  }, [apply, clear, onServerChange, overlay]);
 
   /** Zet één fase op Working, verschuift alle andere Working-fases in hetzelfde project naar Completed. */
   const startPhase = useCallback(async (task: TaskRecord, otherWorking: TaskRecord[]) => {
