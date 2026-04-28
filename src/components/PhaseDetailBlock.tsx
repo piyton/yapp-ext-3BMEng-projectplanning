@@ -5,6 +5,7 @@
 import type { ChecklistItem, Phase, SubtaskItem } from "../types";
 import { ChecklistLine, SubtaskLine } from "./ChecklistLine";
 import type { UrgencyInfo } from "../lib/urgency";
+import { openTask } from "../lib/yappBridge";
 
 interface Props {
   phase: Phase;
@@ -126,9 +127,7 @@ export default function PhaseDetailBlock({
               <SubtaskLine
                 key={s.taskName}
                 subtask={s}
-                onOpen={(name) => {
-                  if (erpnextUrl) window.open(`${erpnextUrl}/app/task/${name}`, "_blank");
-                }}
+                onOpen={(name) => openTask(name).catch((e) => console.error("openTask failed:", e))}
                 onToggle={onToggleSubtask}
                 onEditSubject={onEditSubtask}
               />
@@ -176,18 +175,25 @@ export default function PhaseDetailBlock({
         </section>
       )}
 
-      {erpnextUrl && (
-        <div className="mt-3 pt-2 border-t border-gray-200">
+      <div className="mt-3 pt-2 border-t border-gray-200 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => openTask(phase.taskName).catch((e) => console.error("openTask failed:", e))}
+          className="text-[10px] text-purple-3bm hover:underline cursor-pointer"
+        >
+          → bewerk {phase.taskName} in Y-app
+        </button>
+        {erpnextUrl && (
           <a
             href={`${erpnextUrl}/app/task/${phase.taskName}`}
             target="_blank"
             rel="noreferrer"
-            className="text-[10px] text-purple-3bm hover:underline"
+            className="text-[10px] text-gray-400 hover:underline"
           >
-            → open {phase.taskName} in ERPNext
+            ERPNext
           </a>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

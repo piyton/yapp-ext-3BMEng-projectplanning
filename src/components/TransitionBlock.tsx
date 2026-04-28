@@ -7,6 +7,7 @@
  */
 import type { ChecklistItem, SubtaskItem, Transition } from "../types";
 import { ChecklistLine, SubtaskLine } from "./ChecklistLine";
+import { openTask as openTaskInYapp } from "../lib/yappBridge";
 
 interface Props {
   transition: Transition;
@@ -46,7 +47,7 @@ export default function TransitionBlock({
   }`;
 
   const openTask = (name: string) => {
-    if (erpnextUrl) window.open(`${erpnextUrl}/app/task/${name}`, "_blank");
+    openTaskInYapp(name).catch((e) => console.error("openTask failed:", e));
   };
 
   return (
@@ -109,16 +110,25 @@ export default function TransitionBlock({
         </div>
       </div>
 
-      {transition.taskName && erpnextUrl && (
-        <div className="mt-3 pt-2 border-t border-amber-200">
-          <a
-            href={`${erpnextUrl}/app/task/${transition.taskName}`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[10px] text-purple-3bm hover:underline"
+      {transition.taskName && (
+        <div className="mt-3 pt-2 border-t border-amber-200 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => openTask(transition.taskName!)}
+            className="text-[10px] text-purple-3bm hover:underline cursor-pointer"
           >
-            → open {transition.taskName} in ERPNext
-          </a>
+            → bewerk {transition.taskName} in Y-app
+          </button>
+          {erpnextUrl && (
+            <a
+              href={`${erpnextUrl}/app/task/${transition.taskName}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[10px] text-gray-400 hover:underline"
+            >
+              ERPNext
+            </a>
+          )}
         </div>
       )}
       {!transition.taskName && (

@@ -14,6 +14,7 @@ import {
   type UrgencyLevel,
 } from "../lib/urgency";
 import { shortName } from "../lib/assignees";
+import { openProject } from "../lib/yappBridge";
 
 interface Props {
   view: ProjectView;
@@ -157,15 +158,31 @@ export default function ProjectRow({
         >
           ▶
         </span>
-        <span className="text-xs text-purple-3bm font-semibold">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openProject(view.project.name).catch((err) => console.error("openProject failed:", err));
+          }}
+          title="Open project in Y-app"
+          className="text-xs text-purple-3bm font-semibold hover:underline text-left cursor-pointer"
+        >
           {view.project.name}
-        </span>
+        </button>
         <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold text-center ${badge.cls}`}>
           {badge.label}
         </span>
-        <span className="text-xs font-semibold text-gray-900 truncate">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openProject(view.project.name).catch((err) => console.error("openProject failed:", err));
+          }}
+          title="Open project in Y-app"
+          className="text-xs font-semibold text-gray-900 truncate hover:underline text-left cursor-pointer"
+        >
           {view.project.project_name}
-        </span>
+        </button>
         {showChip && projectUrgency.daysLeft !== null ? (
           <span
             className={`text-[10px] px-1.5 py-0.5 rounded font-semibold whitespace-nowrap text-center ${chipClass(projectUrgency.level)}`}

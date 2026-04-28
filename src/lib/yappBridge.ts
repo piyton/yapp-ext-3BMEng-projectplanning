@@ -97,6 +97,22 @@ export function getErpNextAppUrl(): Promise<string> {
 }
 
 /**
+ * Vraag de Y-app parent om een Task in de native taken-modal te openen.
+ * Y-app navigeert naar /tasks en opent het detail-paneel.
+ */
+export function openTask(name: string): Promise<{ ok: true }> {
+  return call<{ ok: true }>("openTask", [name]);
+}
+
+/**
+ * Vraag de Y-app parent om een Project in de native projecten-pagina
+ * te openen.
+ */
+export function openProject(name: string): Promise<{ ok: true }> {
+  return call<{ ok: true }>("openProject", [name]);
+}
+
+/**
  * fetchAll — paginated wrapper around fetchList for when we need every
  * matching record. The Y-app parent doesn't expose this directly, so we
  * page here.
