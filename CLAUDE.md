@@ -5,7 +5,7 @@ Aanvullende instructies voor deze extensie-repo. De algemene workspace-regels ui
 ## Git workflow — afwijkend van workspace-default
 
 - **Pushen mag zonder expliciete bevestiging.** Dit is een eigen extensie-repo (niet de Y-app core), losstaand gehost. Branch werk + push is de normale flow; je hoeft niet elke keer te vragen.
-- Gebruik wel een branch voor niet-triviaal werk, niet rechtstreeks naar `main` zonder reden.
+- **Werk gaat naar `main`.** GitHub Actions (`.github/workflows/deploy.yml`) triggert *alleen* op pushes naar `main` en deployt naar GitHub Pages (`https://piyton.github.io/yapp-ext-3BMEng-projectplanning/`). Y-app laadt de extensie van die URL — wijzigingen op feature-branches zijn dus onzichtbaar voor de gebruiker totdat ze in `main` zitten. Default-flow: commit op feature-branch → fast-forward merge naar `main` → push `main`.
 - Force-push, history rewrites, en `--no-verify` blijven verboden zonder expliciete toestemming.
 
 ## Wat de extensie is
