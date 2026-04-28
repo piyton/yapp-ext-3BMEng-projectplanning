@@ -9,7 +9,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { updateDocument } from "./yappBridge";
-import { toggleChecklistItemInHtml, uncheckAllInHtml } from "./descriptionToggle";
+import { toggleChecklistItemInHtml, checkAllInHtml } from "./descriptionToggle";
 import type { ChecklistItem, TaskRecord } from "../types";
 
 export type TaskOverlay = Map<string, Partial<TaskRecord>>;
@@ -68,7 +68,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
       // Pak de meest recente description uit de overlay (eerdere item-
       // toggles kunnen nog niet zijn teruggekomen via fetch).
       const currentDesc = overlay.get(task.name)?.description ?? task.description;
-      if (currentDesc) patch.description = uncheckAllInHtml(currentDesc);
+      if (currentDesc) patch.description = checkAllInHtml(currentDesc);
     }
     apply(task.name, patch);
     try {
@@ -141,7 +141,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     const patch: Partial<TaskRecord> = { status };
     if (status === "Completed") {
       const currentDesc = overlay.get(task.name)?.description ?? task.description;
-      if (currentDesc) patch.description = uncheckAllInHtml(currentDesc);
+      if (currentDesc) patch.description = checkAllInHtml(currentDesc);
     }
     apply(task.name, patch);
     try {

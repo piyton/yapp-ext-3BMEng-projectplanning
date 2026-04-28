@@ -122,19 +122,19 @@ export function toggleChecklistItemInHtml(
 }
 
 /**
- * Zet alle `<li data-list="checked">` om naar `"unchecked"`. Gebruikt
- * wanneer een task op Completed gezet wordt — eventuele sub-checkboxes
- * in de description worden dan ook visueel leeg.
+ * Zet alle `<li data-list="unchecked">` om naar `"checked"`. Gebruikt
+ * wanneer een task op Completed gezet wordt — alle sub-checkboxes in de
+ * description worden dan ook visueel afgevinkt.
  */
-export function uncheckAllInHtml(html: string): string {
+export function checkAllInHtml(html: string): string {
   if (!html) return html;
   if (typeof DOMParser === "undefined") {
-    return html.replace(/data-list="checked"/gi, 'data-list="unchecked"');
+    return html.replace(/data-list="unchecked"/gi, 'data-list="checked"');
   }
   const doc = new DOMParser().parseFromString(html, "text/html");
   const root = doc.body;
-  const items = root.querySelectorAll('li[data-list="checked"]');
-  items.forEach((li) => li.setAttribute("data-list", "unchecked"));
+  const items = root.querySelectorAll('li[data-list="unchecked"]');
+  items.forEach((li) => li.setAttribute("data-list", "checked"));
   return root.innerHTML;
 }
 
