@@ -1,0 +1,386 @@
+/*
+ * FaseTracker — status-driven phase tracker.
+ *
+ * Volgens spec: alleen status (actief/wachten/controle/ingepland/hold) draagt
+ * kleur; fase-positie (done/current/future) is neutraal grijs/dashed. Geen
+ * Tailwind, geen 3BM huiskleuren — eigen tokens onder .row-card scope zodat
+ * deze CSS niets buiten de tracker raakt.
+ */
+
+.row-card {
+  /* Surface */
+  --bg: #f6f5f1;
+  --card: #ffffff;
+  --ink: #1a1a1a;
+  --ink-soft: #4a4a4a;
+  --ink-mute: #8a8a8a;
+  --line: #e8e6e0;
+  --line-soft: #efede7;
+
+  --rail-empty: #e8e6e0;
+  --rail-done: #4a4a4a;
+  --rail-done-hl: #6a6a6a;
+
+  --future-ring: #c8c6c0;
+  --future-ink: #6a6a6a;
+
+  --s-actief:    #2b7a4b;  --s-actief-bg:    #e8f3ec;  --s-actief-deep:    #1d5a36;
+  --s-wachten:   #c77a18;  --s-wachten-bg:   #fbf1e1;  --s-wachten-deep:   #9a5e11;
+  --s-controle:  #2c5fa8;  --s-controle-bg:  #e5eef9;  --s-controle-deep:  #1f457d;
+  --s-hold:      #6a6a6a;  --s-hold-bg:      #ececea;  --s-hold-deep:      #4a4a4a;
+  --s-ingepland: #7a4fb8;  --s-ingepland-bg: #f0ebf8;  --s-ingepland-deep: #5a3890;
+
+  --select: #111111;
+
+  --shadow-card:   0 1px 2px rgba(20,20,20,.04), 0 6px 20px rgba(20,20,20,.04);
+  --shadow-select: 0 4px 14px rgba(0,0,0,.14), 0 1px 3px rgba(0,0,0,.08);
+}
+
+/* === ROW CARD === */
+.row-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: border-color .15s ease;
+  margin-bottom: 12px;
+}
+.row-card.expanded {
+  border-color: var(--select);
+  box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 12px 36px rgba(0,0,0,.08);
+}
+
+.row-head {
+  display: grid;
+  grid-template-columns: 320px 1fr auto;
+  align-items: center;
+  gap: 24px;
+  padding: 22px 26px 18px;
+}
+
+.row-card .meta { display: flex; align-items: center; gap: 10px; min-width: 0; cursor: pointer; }
+.row-card .meta .chev { color: var(--ink-mute); font-size: 11px; }
+.row-card .meta .num  { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.row-card .meta .badge {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+  background: #1a1a1a; color: #fff; padding: 3px 6px; border-radius: 3px;
+}
+.row-card .meta .title {
+  color: var(--ink-soft);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.row-card .client { color: var(--ink-mute); font-size: 13px; text-align: right; }
+
+
+/* === TRACKER: rail + phases === */
+.row-card .tracker { position: relative; padding: 26px 26px 18px; }
+
+.row-card .bar {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rail-empty);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+}
+.row-card .bar::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 6px,
+    rgba(0,0,0,0.06) 6px 7px
+  );
+  pointer-events: none;
+}
+
+.row-card .bar-done {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: linear-gradient(180deg, var(--rail-done-hl), var(--rail-done));
+  border-radius: 999px 0 0 999px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.row-card .bar-active {
+  position: absolute; top: 0; bottom: 0;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.row-card .bar-active.round-right { border-radius: 0 999px 999px 0; }
+.row-card .bar-active.round-both  { border-radius: 999px; }
+
+.row-card[data-state="actief"]    .bar-active { background: linear-gradient(180deg, #3a9660, var(--s-actief)); }
+.row-card[data-state="wachten"]   .bar-active { background: linear-gradient(180deg, #dd8f26, var(--s-wachten)); }
+.row-card[data-state="controle"]  .bar-active { background: linear-gradient(180deg, #3d78c5, var(--s-controle)); }
+.row-card[data-state="hold"]      .bar-active { background: linear-gradient(180deg, #8a8a8a, var(--s-hold)); }
+.row-card[data-state="ingepland"] .bar-active { background: var(--s-ingepland); }
+
+/* ACTIEF: moving shine */
+.row-card[data-state="actief"] .bar-active::after {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: -40%;
+  width: 40%;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,0.5) 50%,
+    transparent 100%);
+  animation: ft-shine 2.4s ease-in-out infinite;
+}
+@keyframes ft-shine {
+  0%   { left: -40%; }
+  100% { left: 110%; }
+}
+
+/* WACHTEN: dashed leading edge, static */
+.row-card[data-state="wachten"] .bar-active::after {
+  content: '';
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 24%;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 3px,
+    rgba(255,255,255,0.45) 3px 6px
+  );
+}
+
+/* CONTROLE: small grid */
+.row-card[data-state="controle"] .bar-active::after {
+  content: '';
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 30%;
+  background-image:
+    linear-gradient(90deg, rgba(255,255,255,0.25) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255,255,255,0.25) 1px, transparent 1px);
+  background-size: 6px 4px;
+}
+
+/* HOLD: pause-bar pattern across whole segment */
+.row-card[data-state="hold"] .bar-active::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 4px,
+    rgba(0,0,0,0.28) 4px 6px
+  );
+}
+
+/* INGEPLAND: diagonal stripes */
+.row-card[data-state="ingepland"] .bar-active::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0 4px,
+    rgba(255,255,255,0.3) 4px 8px
+  );
+}
+
+
+/* === PHASES on top of the bar === */
+.row-card .phases {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin-top: -22px;
+  padding: 0;
+}
+.row-card .phase {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  position: relative;
+  cursor: pointer;
+  padding: 0 2px;
+  transition: transform .15s ease;
+  background: transparent;
+  border: none;
+}
+.row-card .phase:hover { transform: translateY(-1px); }
+
+.row-card .bubble {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  background: var(--card);
+  border: 2px solid var(--future-ring);
+  color: var(--future-ink);
+  position: relative;
+  transition: all .2s ease;
+  box-sizing: border-box;
+}
+.row-card .phase .label {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
+  color: var(--ink-mute);
+  transition: color .15s, font-weight .15s;
+}
+
+/* DONE phase */
+.row-card .phase.done .bubble {
+  background: var(--rail-done);
+  border-color: var(--rail-done);
+  color: #fff;
+  width: 28px; height: 28px;
+  font-size: 0;
+}
+.row-card .phase.done .bubble::before {
+  content: '';
+  width: 9px; height: 5px;
+  border-left: 1.5px solid #fff;
+  border-bottom: 1.5px solid #fff;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+/* FUTURE phase */
+.row-card .phase.future .bubble {
+  background: var(--card);
+  border: 1.5px dashed var(--future-ring);
+  color: var(--future-ink);
+}
+
+/* CURRENT phase */
+.row-card .phase.current .bubble {
+  width: 46px; height: 46px;
+  font-size: 12px; font-weight: 700;
+  color: #fff; border: none;
+}
+.row-card .phase.current.actief    .bubble { background: var(--s-actief);    box-shadow: 0 0 0 5px var(--card), 0 0 0 8px var(--s-actief-bg); }
+.row-card .phase.current.wachten   .bubble { background: var(--s-wachten);   box-shadow: 0 0 0 5px var(--card), 0 0 0 8px var(--s-wachten-bg); }
+.row-card .phase.current.controle  .bubble { background: var(--s-controle);  box-shadow: 0 0 0 5px var(--card), 0 0 0 8px var(--s-controle-bg); }
+.row-card .phase.current.hold      .bubble {
+  box-shadow: 0 0 0 5px var(--card), 0 0 0 8px var(--s-hold-bg);
+  background-image: repeating-linear-gradient(45deg, var(--s-hold) 0 4px, #7a7a7a 4px 8px);
+}
+.row-card .phase.current.ingepland .bubble {
+  background: var(--card);
+  color: var(--s-ingepland);
+  border: 2px dashed var(--s-ingepland);
+  box-shadow: 0 0 0 4px var(--card), 0 0 0 7px var(--s-ingepland-bg);
+}
+.row-card .phase.current.actief    .label { color: var(--s-actief-deep);    font-weight: 700; }
+.row-card .phase.current.wachten   .label { color: var(--s-wachten-deep);   font-weight: 700; }
+.row-card .phase.current.controle  .label { color: var(--s-controle-deep);  font-weight: 700; }
+.row-card .phase.current.hold      .label { color: var(--s-hold-deep);      font-weight: 700; }
+.row-card .phase.current.ingepland .label { color: var(--s-ingepland-deep); font-weight: 700; }
+
+/* Status icon badge */
+.row-card .state-icon {
+  position: absolute; bottom: -4px; right: -4px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  display: grid; place-items: center;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+.row-card .state-icon svg { width: 11px; height: 11px; }
+.row-card .phase.current.actief    .state-icon { color: var(--s-actief); }
+.row-card .phase.current.wachten   .state-icon { color: var(--s-wachten); }
+.row-card .phase.current.controle  .state-icon { color: var(--s-controle); }
+.row-card .phase.current.hold      .state-icon { color: var(--s-hold); }
+.row-card .phase.current.ingepland .state-icon { color: var(--s-ingepland); }
+
+
+/* === SELECTED === */
+.row-card .phase.selected .bubble {
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 3px var(--card),
+    0 0 0 5px var(--select),
+    var(--shadow-select);
+}
+.row-card .phase.current.selected .bubble {
+  box-shadow:
+    0 0 0 3px var(--card),
+    0 0 0 5px var(--select),
+    0 6px 18px rgba(0,0,0,.18);
+}
+.row-card .phase.done.selected .bubble {
+  box-shadow:
+    0 0 0 3px var(--card),
+    0 0 0 5px var(--select),
+    0 4px 10px rgba(0,0,0,.16);
+}
+.row-card .phase.selected .label {
+  color: var(--select); font-weight: 700; letter-spacing: 0.12em;
+}
+
+.row-card .phase.selected::after {
+  content: '';
+  position: absolute;
+  bottom: -24px; left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px; height: 12px;
+  background: var(--select);
+  z-index: 2;
+}
+.row-card .phase.selected .drop {
+  position: absolute;
+  bottom: -19px; left: 50%;
+  transform: translateX(-50%);
+  width: 2px; height: 8px;
+  background: var(--select);
+  z-index: 3;
+}
+
+/* Notification badge */
+.row-card .notif {
+  position: absolute; top: -2px; right: -2px;
+  min-width: 16px; height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #e89b2e; color: #fff;
+  font-size: 10px; font-weight: 700;
+  display: grid; place-items: center;
+  border: 2px solid var(--card);
+  line-height: 1;
+}
+
+
+/* === STATUS BAR === */
+.row-card .status-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 30px 16px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--line-soft);
+  font-size: 12.5px;
+}
+.row-card.expanded .status-bar { border-bottom: 1px solid var(--line); }
+
+.row-card .status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 20px;
+  font-weight: 600; font-size: 12px;
+}
+.row-card .status-pill svg { width: 12px; height: 12px; }
+.row-card .status-pill.actief    { background: var(--s-actief-bg);    color: var(--s-actief-deep); }
+.row-card .status-pill.wachten   { background: var(--s-wachten-bg);   color: var(--s-wachten-deep); }
+.row-card .status-pill.controle  { background: var(--s-controle-bg);  color: var(--s-controle-deep); }
+.row-card .status-pill.hold      { background: var(--s-hold-bg);      color: var(--s-hold-deep); }
+.row-card .status-pill.ingepland { background: var(--s-ingepland-bg); color: var(--s-ingepland-deep); }
+
+.row-card .status-detail        { color: var(--ink-soft); }
+.row-card .status-detail .who   { font-weight: 600; color: var(--ink); }
+
+.row-card .status-meta {
+  margin-left: auto;
+  font-size: 11px; color: var(--ink-mute);
+  display: flex; gap: 16px; align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.row-card .status-meta .late          { color: #c44545; font-weight: 600; }
+.row-card .status-meta .ontime        { color: var(--s-actief-deep); font-weight: 600; }
+.row-card .status-meta .progress-count{ font-weight: 600; color: var(--ink-soft); }
+
+
+/* === EXPANDED BODY === */
+.row-card .expanded-body {
+  background: #fafaf7;
+}
+.row-card .expanded-body.empty {
+  padding: 18px 26px;
+  font-size: 12px; color: var(--ink-mute); font-style: italic;
+}

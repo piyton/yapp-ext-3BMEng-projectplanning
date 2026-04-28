@@ -3,7 +3,7 @@
  * Inhoud per block is ofwel PhaseDetailBlock ofwel TransitionBlock.
  */
 
-import type { TimelineItem } from "./PhaseTimeline";
+import type { CarouselItem } from "../lib/faseTimeline";
 import PhaseDetailBlock from "./PhaseDetailBlock";
 import TransitionBlock from "./TransitionBlock";
 import type { ChecklistItem, Phase, SubtaskItem } from "../types";
@@ -12,7 +12,7 @@ import type { ProjectplanningSettings } from "../lib/settings";
 import { computeUrgency } from "../lib/urgency";
 
 interface Props {
-  items: TimelineItem[];
+  items: CarouselItem[];
   activeIndex: number;
   onNavigate: (index: number) => void;
   erpnextUrl?: string | null;
@@ -36,7 +36,7 @@ interface RenderOpts {
     "onStartPhase" | "onSetPhaseStatus">;
 }
 
-function renderItem(item: TimelineItem, opts: RenderOpts) {
+function renderItem(item: CarouselItem, opts: RenderOpts) {
   if (item.kind === "phase") {
     const urgency: UrgencyInfo = computeUrgency(
       item.phase.dates.end,

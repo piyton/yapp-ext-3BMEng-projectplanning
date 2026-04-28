@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./components/faseTracker.css";
 
 /* 3BM huisstijl kleuren — beschikbaar als Tailwind utility classes:
  *   bg-purple-3bm, text-purple-3bm, border-purple-3bm

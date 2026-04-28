@@ -1,7 +1,7 @@
 /**
  * Hoofdpagina: haalt Projects + Tasks + Timesheets op via yappBridge,
  * bouwt ProjectViews via phaseDetection, classificeert via classification,
- * en rendert als filterbare lijst van ProjectRow-componenten.
+ * en rendert als filterbare lijst van FaseTracker-componenten.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -17,7 +17,7 @@ import type {
   TaskRecord,
   TimesheetRecord,
 } from "../types";
-import ProjectRow from "../components/ProjectRow";
+import FaseTracker from "../components/FaseTracker";
 import SettingsPanel from "../components/SettingsPanel";
 
 type Bucket = "actueel" | "on-hold" | "archief" | "alles";
@@ -264,7 +264,7 @@ export default function Projectplanning() {
           <div className="text-sm text-gray-500 italic">Geen projecten in deze categorie.</div>
         )}
         {!loading && !error && filtered.map((view) => (
-          <ProjectRow
+          <FaseTracker
             key={view.project.name}
             view={view}
             erpnextUrl={erpnextUrl}
