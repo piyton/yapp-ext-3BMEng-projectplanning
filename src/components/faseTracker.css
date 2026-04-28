@@ -53,28 +53,43 @@
 
 .row-head {
   display: grid;
-  grid-template-columns: 320px 1fr auto;
-  align-items: center;
-  gap: 24px;
-  padding: 22px 26px 18px;
+  grid-template-columns: 35% 65%;
+  align-items: start;
+  gap: 16px;
+  padding: 18px 22px 14px;
 }
 
-.row-card .meta { display: flex; align-items: center; gap: 10px; min-width: 0; cursor: pointer; }
-.row-card .meta .chev { color: var(--ink-mute); font-size: 11px; }
-.row-card .meta .num  { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.row-card .meta {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+  cursor: pointer;
+  padding-top: 6px;
+}
+.row-card .meta .chev { color: var(--ink-mute); font-size: 11px; flex-shrink: 0; }
+.row-card .meta .num  {
+  font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink);
+  flex-shrink: 0;
+}
 .row-card .meta .badge {
   font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
   background: #1a1a1a; color: #fff; padding: 3px 6px; border-radius: 3px;
+  flex-shrink: 0;
 }
 .row-card .meta .title {
-  color: var(--ink-soft);
+  color: var(--ink);
+  font-weight: 600;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
 }
-.row-card .client { color: var(--ink-mute); font-size: 13px; text-align: right; }
+.row-card .meta .client-inline {
+  color: var(--ink-mute); font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 
 /* === TRACKER: rail + phases === */
-.row-card .tracker { position: relative; padding: 26px 26px 18px; }
+.row-card .tracker { position: relative; padding: 22px 8px 4px; }
 
 .row-card .bar {
   position: relative;
@@ -337,23 +352,22 @@
 }
 
 
-/* === STATUS BAR === */
-.row-card .status-bar {
+/* === STATUS LINE (onder tracker, in tracker-kolom) === */
+.row-card .status-line {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 30px 16px;
-  border-top: 1px solid var(--line-soft);
-  background: var(--line-soft);
-  font-size: 12.5px;
+  gap: 10px;
+  padding: 12px 4px 4px;
+  font-size: 11.5px;
+  flex-wrap: wrap;
 }
-.row-card.expanded .status-bar { border-bottom: 1px solid var(--line); }
 
 .row-card .status-pill {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 10px 4px 8px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px 3px 7px;
   border-radius: 20px;
-  font-weight: 600; font-size: 12px;
+  font-weight: 600; font-size: 11px;
+  flex-shrink: 0;
 }
 .row-card .status-pill svg { width: 12px; height: 12px; }
 .row-card .status-pill.actief    { background: var(--s-actief-bg);    color: var(--s-actief-deep); }
@@ -367,9 +381,10 @@
 
 .row-card .status-meta {
   margin-left: auto;
-  font-size: 11px; color: var(--ink-mute);
-  display: flex; gap: 16px; align-items: center;
+  font-size: 10.5px; color: var(--ink-mute);
+  display: flex; gap: 12px; align-items: center;
   font-variant-numeric: tabular-nums;
+  flex-wrap: wrap;
 }
 .row-card .status-meta .late          { color: #c44545; font-weight: 600; }
 .row-card .status-meta .ontime        { color: var(--s-actief-deep); font-weight: 600; }
@@ -383,4 +398,9 @@
 .row-card .expanded-body.empty {
   padding: 18px 26px;
   font-size: 12px; color: var(--ink-mute); font-style: italic;
+}
+
+/* Responsive: smal scherm → meta + tracker stapelen */
+@media (max-width: 900px) {
+  .row-head { grid-template-columns: 1fr; gap: 10px; }
 }

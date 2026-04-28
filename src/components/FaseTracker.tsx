@@ -235,6 +235,12 @@ export default function FaseTracker({
   };
 
   const selectPhase = (phaseIndex: number) => {
+    // Klik op de geselecteerde + huidige fase terwijl row open is → sluiten.
+    if (expanded && selectedPhaseIndex === phaseIndex && phaseIndex === curIdx) {
+      setExpanded(false);
+      setSelectedPhaseIndex(null);
+      return;
+    }
     setExpanded(true);
     setSelectedPhaseIndex(phaseIndex);
   };
@@ -281,7 +287,6 @@ export default function FaseTracker({
           >
             {view.project.name}
           </button>
-          <span className="badge">{templateBadgeLabel(view.template)}</span>
           <button
             type="button"
             className="title"
@@ -298,6 +303,10 @@ export default function FaseTracker({
           >
             {view.project.project_name}
           </button>
+          <span className="badge">{templateBadgeLabel(view.template)}</span>
+          {view.project.customer && (
+            <span className="client-inline">· {view.project.customer}</span>
+          )}
         </div>
 
         <div className="tracker">
@@ -324,37 +333,34 @@ export default function FaseTracker({
               />
             ))}
           </div>
+          <div className="status-line">
+            <span className={`status-pill ${status}`}>
+              <StatusIcon status={status} />
+              {STATUS_LABEL[status]}
+            </span>
+            <span className="status-detail">
+              {detail.lead}{" "}
+              {detail.who && <span className="who">{detail.who}</span>}
+            </span>
+            <span className="status-meta">
+              {totalChecklistItems > 0 && (
+                <span className="progress-count">
+                  {doneChecklistItems}/{totalChecklistItems} taken
+                </span>
+              )}
+              {projectUrgency.daysLeft !== null && (
+                <span className={onSchedule ? "ontime" : "late"}>
+                  {onSchedule ? "op schema" : `${Math.abs(projectUrgency.daysLeft)}d te laat`}
+                </span>
+              )}
+              {currentPhase && (
+                <span>
+                  {currentPhase.code} · {formatDeadline(projectUrgency.daysLeft, projectUrgency.deadline)}
+                </span>
+              )}
+            </span>
+          </div>
         </div>
-
-        <div className="client">{view.project.customer ?? ""}</div>
-      </div>
-
-      <div className="status-bar">
-        <span className={`status-pill ${status}`}>
-          <StatusIcon status={status} />
-          {STATUS_LABEL[status]}
-        </span>
-        <span className="status-detail">
-          {detail.lead}{" "}
-          {detail.who && <span className="who">{detail.who}</span>}
-        </span>
-        <span className="status-meta">
-          {totalChecklistItems > 0 && (
-            <span className="progress-count">
-              {doneChecklistItems}/{totalChecklistItems} taken
-            </span>
-          )}
-          {projectUrgency.daysLeft !== null && (
-            <span className={onSchedule ? "ontime" : "late"}>
-              {onSchedule ? "op schema" : `${Math.abs(projectUrgency.daysLeft)}d te laat`}
-            </span>
-          )}
-          {currentPhase && (
-            <span>
-              {currentPhase.code} · {formatDeadline(projectUrgency.daysLeft, projectUrgency.deadline)}
-            </span>
-          )}
-        </span>
       </div>
 
       {expanded && carouselItems.length > 0 && (
