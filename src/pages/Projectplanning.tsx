@@ -19,6 +19,7 @@ import type {
 } from "../types";
 import FaseTracker from "../components/FaseTracker";
 import SettingsPanel from "../components/SettingsPanel";
+import { currentPhaseIndex } from "../lib/faseStatus";
 
 type Bucket = "actueel" | "on-hold" | "archief" | "alles";
 
@@ -28,6 +29,18 @@ const BUCKETS: { id: Bucket; label: string }[] = [
   { id: "archief",  label: "Archief" },
   { id: "alles",    label: "Alles" },
 ];
+
+/** ERPNext Task-statussen die op een fase-task kunnen voorkomen. */
+const TASK_STATUSES = [
+  "Open",
+  "Working",
+  "Pending Review",
+  "Completed",
+  "Cancelled",
+  "Overdue",
+  "Template",
+] as const;
+type TaskStatusFilter = (typeof TASK_STATUSES)[number] | "alles";
 
 interface TaskRecordWithAssign extends TaskRecord {
   _assign: string | null;
@@ -42,6 +55,7 @@ export default function Projectplanning() {
   const [timesheets, setTimesheets] = useState<TimesheetRecord[]>([]);
   const [erpnextUrl, setErpnextUrl] = useState<string | null>(null);
   const [bucket, setBucket] = useState<Bucket>("actueel");
+  const [taskStatusFilter, setTaskStatusFilter] = useState<TaskStatusFilter>("alles");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -161,10 +175,36 @@ export default function Projectplanning() {
     return m;
   }, [tasks, mutations.overlay]);
 
+  /** Status van de huidige fase-task per view (raw ERPNext Task.status). */
+  const currentTaskStatusByView = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const v of views) {
+      const idx = currentPhaseIndex(v);
+      const phase = v.phases[idx];
+      const status = phase ? rawStatusByTaskName.get(phase.taskName) : undefined;
+      m.set(v.project.name, status ?? "");
+    }
+    return m;
+  }, [views, rawStatusByTaskName]);
+
+  const taskStatusCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const status of TASK_STATUSES) c[status] = 0;
+    for (const v of views) {
+      const s = currentTaskStatusByView.get(v.project.name);
+      if (s && c[s] !== undefined) c[s]++;
+    }
+    return c;
+  }, [views, currentTaskStatusByView]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return views
       .filter((v) => bucket === "alles" ? true : v.classification.bucket === bucket)
+      .filter((v) => {
+        if (taskStatusFilter === "alles") return true;
+        return currentTaskStatusByView.get(v.project.name) === taskStatusFilter;
+      })
       .filter((v) => {
         if (!q) return true;
         return (
@@ -174,7 +214,7 @@ export default function Projectplanning() {
         );
       })
       .sort((a, b) => b.classification.urgencyScore - a.classification.urgencyScore);
-  }, [views, bucket, search]);
+  }, [views, bucket, taskStatusFilter, currentTaskStatusByView, search]);
 
   return (
     <div className="min-h-full bg-[#f0f0f0] relative">
@@ -216,41 +256,88 @@ export default function Projectplanning() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 px-8 py-3 bg-white border-b border-gray-200">
-        <div className="flex gap-1">
-          {BUCKETS.map((b) => {
-            const active = bucket === b.id;
-            const count = b.id === "alles" ? views.length : counts[b.id];
+      <div className="flex flex-col gap-2 px-8 py-3 bg-white border-b border-gray-200">
+        <div className="flex items-center gap-4">
+          <div className="flex gap-1">
+            {BUCKETS.map((b) => {
+              const active = bucket === b.id;
+              const count = b.id === "alles" ? views.length : counts[b.id];
+              return (
+                <button
+                  type="button"
+                  key={b.id}
+                  onClick={() => setBucket(b.id)}
+                  className={`px-4 py-1.5 rounded-full text-[13px] border transition ${
+                    active
+                      ? "bg-purple-3bm text-white border-purple-3bm"
+                      : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+                  }`}
+                >
+                  {b.label}
+                  <span
+                    className={`ml-1.5 inline-block rounded-full px-1.5 text-[11px] ${
+                      active ? "bg-white/30" : "bg-gray-200"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <input
+            type="text"
+            placeholder="Zoek project of klant..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="ml-auto border border-gray-300 rounded px-3 py-1.5 text-[13px] w-[240px] focus:outline-none focus:border-teal-3bm"
+          />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] text-gray-400 uppercase tracking-wide mr-1">Taakstatus:</span>
+          <button
+            type="button"
+            onClick={() => setTaskStatusFilter("alles")}
+            className={`px-2.5 py-0.5 rounded-full text-[11px] border transition ${
+              taskStatusFilter === "alles"
+                ? "bg-gray-700 text-white border-gray-700"
+                : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+            }`}
+          >
+            Alle
+            <span className={`ml-1 inline-block rounded-full px-1 text-[10px] ${
+              taskStatusFilter === "alles" ? "bg-white/30" : "bg-gray-200"
+            }`}>
+              {views.length}
+            </span>
+          </button>
+          {TASK_STATUSES.map((s) => {
+            const active = taskStatusFilter === s;
+            const count = taskStatusCounts[s] ?? 0;
             return (
               <button
                 type="button"
-                key={b.id}
-                onClick={() => setBucket(b.id)}
-                className={`px-4 py-1.5 rounded-full text-[13px] border transition ${
+                key={s}
+                onClick={() => setTaskStatusFilter(s)}
+                disabled={count === 0 && !active}
+                className={`px-2.5 py-0.5 rounded-full text-[11px] border transition ${
                   active
-                    ? "bg-purple-3bm text-white border-purple-3bm"
-                    : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+                    ? "bg-gray-700 text-white border-gray-700"
+                    : count === 0
+                      ? "bg-white text-gray-300 border-gray-200 cursor-not-allowed"
+                      : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
                 }`}
               >
-                {b.label}
-                <span
-                  className={`ml-1.5 inline-block rounded-full px-1.5 text-[11px] ${
-                    active ? "bg-white/30" : "bg-gray-200"
-                  }`}
-                >
+                {s}
+                <span className={`ml-1 inline-block rounded-full px-1 text-[10px] ${
+                  active ? "bg-white/30" : "bg-gray-200"
+                }`}>
                   {count}
                 </span>
               </button>
             );
           })}
         </div>
-        <input
-          type="text"
-          placeholder="Zoek project of klant..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="ml-auto border border-gray-300 rounded px-3 py-1.5 text-[13px] w-[240px] focus:outline-none focus:border-teal-3bm"
-        />
       </div>
 
       <main className="px-8 py-4">

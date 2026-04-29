@@ -186,6 +186,9 @@ export default function FaseTracker({
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [selectedPhaseIndex, setSelectedPhaseIndex] = useState<number | null>(null);
+  // Aparte carousel-index zodat pijl-navigatie ook over transition-items kan
+  // bewegen zonder telkens terug te recomputen vanuit selectedPhaseIndex.
+  const [selectedCarouselIndex, setSelectedCarouselIndex] = useState<number | null>(null);
   const [adhocOpen, setAdhocOpen] = useState(false);
   const [adhocDraft, setAdhocDraft] = useState("");
   const [adhocSaving, setAdhocSaving] = useState(false);
@@ -228,9 +231,11 @@ export default function FaseTracker({
     if (expanded) {
       setExpanded(false);
       setSelectedPhaseIndex(null);
+      setSelectedCarouselIndex(null);
     } else {
       setExpanded(true);
       setSelectedPhaseIndex(curIdx);
+      setSelectedCarouselIndex(carouselIndexForPhase(carouselItems, curIdx));
     }
   };
 
@@ -239,16 +244,20 @@ export default function FaseTracker({
     if (expanded && selectedPhaseIndex === phaseIndex && phaseIndex === curIdx) {
       setExpanded(false);
       setSelectedPhaseIndex(null);
+      setSelectedCarouselIndex(null);
       return;
     }
     setExpanded(true);
     setSelectedPhaseIndex(phaseIndex);
+    setSelectedCarouselIndex(carouselIndexForPhase(carouselItems, phaseIndex));
   };
 
   const carouselActiveIndex =
-    selectedPhaseIndex !== null
-      ? carouselIndexForPhase(carouselItems, selectedPhaseIndex)
-      : 0;
+    selectedCarouselIndex !== null
+      ? selectedCarouselIndex
+      : selectedPhaseIndex !== null
+        ? carouselIndexForPhase(carouselItems, selectedPhaseIndex)
+        : 0;
 
   const isPureRight = curIdx >= view.phases.length - 1 && progress01 >= 0.95;
   const activeRoundClass = isPureRight ? "round-both" : "round-right";
@@ -271,6 +280,9 @@ export default function FaseTracker({
       <div className="row-head">
         <div className="meta" onClick={toggleRow}>
           <span className="chev">{expanded ? "▾" : "▸"}</span>
+          <span className="badge" title={view.template === "none" ? "Geen template" : view.template}>
+            {templateBadgeLabel(view.template)}
+          </span>
           <button
             type="button"
             className="num"
@@ -303,64 +315,76 @@ export default function FaseTracker({
           >
             {view.project.project_name}
           </button>
-          <span className="badge">{templateBadgeLabel(view.template)}</span>
           {view.project.customer && (
-            <span className="client-inline">· {view.project.customer}</span>
+            <span className="client-inline" title={view.project.customer}>
+              · {view.project.customer}
+            </span>
           )}
         </div>
 
-        <div className="tracker">
-          <div className="bar">
-            {geom.doneWidth > 0 && (
-              <div className="bar-done" style={{ width: `${geom.doneWidth}%` }} />
-            )}
-            {geom.activeWidth > 0 && (
-              <div
-                className={`bar-active ${activeRoundClass}`}
-                style={{ left: `${geom.activeLeft}%`, width: `${geom.activeWidth}%` }}
-              />
-            )}
-          </div>
-          <div className="phases">
-            {railItems.map((item) => (
-              <PhaseBubble
-                key={item.phase.code}
-                item={item}
-                currentIndex={curIdx}
-                selectedPhaseIndex={selectedPhaseIndex}
-                status={status}
-                onClick={() => selectPhase(item.phaseIndex)}
-              />
-            ))}
-          </div>
-          <div className="status-line">
-            <span className={`status-pill ${status}`}>
-              <StatusIcon status={status} />
-              {STATUS_LABEL[status]}
-            </span>
-            <span className="status-detail">
-              {detail.lead}{" "}
-              {detail.who && <span className="who">{detail.who}</span>}
-            </span>
-            <span className="status-meta">
-              {totalChecklistItems > 0 && (
-                <span className="progress-count">
-                  {doneChecklistItems}/{totalChecklistItems} taken
-                </span>
-              )}
-              {projectUrgency.daysLeft !== null && (
-                <span className={onSchedule ? "ontime" : "late"}>
-                  {onSchedule ? "op schema" : `${Math.abs(projectUrgency.daysLeft)}d te laat`}
-                </span>
-              )}
-              {currentPhase && (
-                <span>
-                  {currentPhase.code} · {formatDeadline(projectUrgency.daysLeft, projectUrgency.deadline)}
-                </span>
-              )}
+        {view.phases.length === 0 ? (
+          <div className="tracker tracker-empty">
+            <span className="status-pill empty">Geen fase-template</span>
+            <span className="empty-detail">
+              {view.adhocTasks.length > 0
+                ? `${view.adhocTasks.length} losse ${view.adhocTasks.length === 1 ? "taak" : "taken"}`
+                : "geen taken"}
             </span>
           </div>
-        </div>
+        ) : (
+          <div className="tracker">
+            <div className="bar">
+              {geom.doneWidth > 0 && (
+                <div className="bar-done" style={{ width: `${geom.doneWidth}%` }} />
+              )}
+              {geom.activeWidth > 0 && (
+                <div
+                  className={`bar-active ${activeRoundClass}`}
+                  style={{ left: `${geom.activeLeft}%`, width: `${geom.activeWidth}%` }}
+                />
+              )}
+            </div>
+            <div className="phases">
+              {railItems.map((item) => (
+                <PhaseBubble
+                  key={item.phase.code}
+                  item={item}
+                  currentIndex={curIdx}
+                  selectedPhaseIndex={selectedPhaseIndex}
+                  status={status}
+                  onClick={() => selectPhase(item.phaseIndex)}
+                />
+              ))}
+            </div>
+            <div className="status-line">
+              <span className={`status-pill ${status}`}>
+                <StatusIcon status={status} />
+                {STATUS_LABEL[status]}
+              </span>
+              <span className="status-detail">
+                {detail.lead}{" "}
+                {detail.who && <span className="who">{detail.who}</span>}
+              </span>
+              <span className="status-meta">
+                {totalChecklistItems > 0 && (
+                  <span className="progress-count">
+                    {doneChecklistItems}/{totalChecklistItems} taken
+                  </span>
+                )}
+                {projectUrgency.daysLeft !== null && (
+                  <span className={onSchedule ? "ontime" : "late"}>
+                    {onSchedule ? "op schema" : `${Math.abs(projectUrgency.daysLeft)}d te laat`}
+                  </span>
+                )}
+                {currentPhase && (
+                  <span>
+                    {currentPhase.code} · {formatDeadline(projectUrgency.daysLeft, projectUrgency.deadline)}
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {expanded && carouselItems.length > 0 && (
@@ -371,6 +395,9 @@ export default function FaseTracker({
             onNavigate={(idx) => {
               const it = carouselItems[idx];
               if (!it) return;
+              setSelectedCarouselIndex(idx);
+              // Bij phase: ook de rail bijwerken zodat de selected-bubble
+              // meeschuift. Bij transition: rail blijft op de laatste phase.
               if (it.kind === "phase") {
                 setSelectedPhaseIndex(it.phaseIndex);
               }

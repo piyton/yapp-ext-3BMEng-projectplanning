@@ -44,7 +44,10 @@
   box-shadow: var(--shadow-card);
   overflow: hidden;
   transition: border-color .15s ease;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.4;
 }
 .row-card.expanded {
   border-color: var(--select);
@@ -53,43 +56,74 @@
 
 .row-head {
   display: grid;
-  grid-template-columns: 35% 65%;
+  grid-template-columns: 45% 55%;
   align-items: start;
-  gap: 16px;
-  padding: 18px 22px 14px;
+  gap: 14px;
+  padding: 14px 18px 10px;
 }
 
+/* Meta-kolom is een grid met vaste kolommen zodat de CLT/VL-badge en het
+ * project-num bij elke rij op exact dezelfde x-positie staan, ongeacht
+ * project-titel-lengte. */
 .row-card .meta {
-  display: flex; align-items: center; gap: 8px; min-width: 0;
+  display: grid;
+  grid-template-columns: 12px 38px 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   cursor: pointer;
-  padding-top: 6px;
+  padding-top: 4px;
 }
-.row-card .meta .chev { color: var(--ink-mute); font-size: 11px; flex-shrink: 0; }
-.row-card .meta .num  {
-  font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink);
-  flex-shrink: 0;
+.row-card .meta .chev {
+  color: var(--ink-mute); font-size: 11px; line-height: 1;
 }
 .row-card .meta .badge {
   font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
-  background: #1a1a1a; color: #fff; padding: 3px 6px; border-radius: 3px;
-  flex-shrink: 0;
+  background: #1a1a1a; color: #fff;
+  padding: 2px 5px; border-radius: 3px;
+  text-align: center;
+  justify-self: start;
+}
+.row-card .meta .num  {
+  font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink);
+  font-size: 12px;
+  text-align: left;
 }
 .row-card .meta .title {
   color: var(--ink);
   font-weight: 600;
+  font-size: 12px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0;
-  flex: 1 1 auto;
 }
 .row-card .meta .client-inline {
-  color: var(--ink-mute); font-size: 12px;
+  color: var(--ink-mute);
+  font-size: 11px;
   white-space: nowrap;
-  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
 }
 
 
 /* === TRACKER: rail + phases === */
 .row-card .tracker { position: relative; padding: 22px 8px 4px; }
+
+/* Empty-state: project zonder fase-template krijgt geen rail/bubbles. */
+.row-card .tracker.tracker-empty {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 8px;
+  min-height: 38px;
+}
+.row-card .tracker-empty .status-pill.empty {
+  background: var(--line);
+  color: var(--ink-mute);
+  font-weight: 500;
+}
+.row-card .tracker-empty .empty-detail {
+  color: var(--ink-mute);
+  font-size: 11px;
+}
 
 .row-card .bar {
   position: relative;
@@ -378,6 +412,8 @@
 
 .row-card .status-detail        { color: var(--ink-soft); }
 .row-card .status-detail .who   { font-weight: 600; color: var(--ink); }
+/* Detail tekst alleen tonen wanneer rij open is — voorkomt 2-regelige rail */
+.row-card:not(.expanded) .status-detail { display: none; }
 
 .row-card .status-meta {
   margin-left: auto;
