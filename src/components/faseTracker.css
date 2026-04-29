@@ -29,6 +29,7 @@
   --s-controle:  #2c5fa8;  --s-controle-bg:  #e5eef9;  --s-controle-deep:  #1f457d;
   --s-hold:      #6a6a6a;  --s-hold-bg:      #ececea;  --s-hold-deep:      #4a4a4a;
   --s-ingepland: #7a4fb8;  --s-ingepland-bg: #f0ebf8;  --s-ingepland-deep: #5a3890;
+  --s-afgerond:  #4a8c6a;  --s-afgerond-bg:  #ebf3ee;  --s-afgerond-deep:  #2f5d44;
 
   --select: #111111;
 
@@ -176,6 +177,7 @@
 .row-card[data-state="controle"]  .bar-active { background: linear-gradient(180deg, #3d78c5, var(--s-controle)); }
 .row-card[data-state="hold"]      .bar-active { background: linear-gradient(180deg, #8a8a8a, var(--s-hold)); }
 .row-card[data-state="ingepland"] .bar-active { background: var(--s-ingepland); }
+.row-card[data-state="afgerond"]  .bar-active { background: linear-gradient(180deg, #5ea683, var(--s-afgerond)); }
 
 /* ACTIEF: moving shine */
 .row-card[data-state="actief"] .bar-active::after {
@@ -422,6 +424,7 @@
 .row-card .status-pill.controle  { background: var(--s-controle-bg);  color: var(--s-controle-deep); }
 .row-card .status-pill.hold      { background: var(--s-hold-bg);      color: var(--s-hold-deep); }
 .row-card .status-pill.ingepland { background: var(--s-ingepland-bg); color: var(--s-ingepland-deep); }
+.row-card .status-pill.afgerond  { background: var(--s-afgerond-bg);  color: var(--s-afgerond-deep); }
 
 .row-card .status-detail        { color: var(--ink-soft); }
 .row-card .status-detail .who   { font-weight: 600; color: var(--ink); }

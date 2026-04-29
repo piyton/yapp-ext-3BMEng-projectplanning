@@ -52,6 +52,7 @@ const STATUS_LABEL: Record<FaseTrackerStatus, string> = {
   controle: "In controle",
   ingepland: "Ingepland",
   hold: "On-hold",
+  afgerond: "Afgerond",
 };
 
 function StatusIcon({ status }: { status: FaseTrackerStatus }) {
@@ -94,6 +95,13 @@ function StatusIcon({ status }: { status: FaseTrackerStatus }) {
           <rect x="6.7" y="3" width="1.8" height="6" rx="0.3" />
         </svg>
       );
+    case "afgerond":
+      return (
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor"
+             strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M2.5 6.2 5 8.7l4.5-5" />
+        </svg>
+      );
   }
 }
 
@@ -134,6 +142,8 @@ function statusDetail(
         lead: `On-hold sinds ${view.classification.daysSinceActivity}d, fase`,
         who: current.code,
       };
+    case "afgerond":
+      return { lead: "Project afgerond" };
   }
 }
 
@@ -210,7 +220,9 @@ export default function FaseTracker({
 
   const currentPhase = view.phases[curIdx];
   const progress01 = currentPhase ? phaseProgress01(currentPhase) : 0;
-  const geom = railGeometry(view.phases.length || 1, curIdx, progress01);
+  const geom = status === "afgerond"
+    ? { doneWidth: 0, activeLeft: 0, activeWidth: 100 }
+    : railGeometry(view.phases.length || 1, curIdx, progress01);
 
   const projectUrgency = useMemo(
     () => computeProjectUrgency(view, settings),
@@ -374,17 +386,17 @@ export default function FaseTracker({
                     {detail.who && <span className="who">{detail.who}</span>}
                   </span>
                   <span className="status-meta">
-                    {totalChecklistItems > 0 && (
+                    {status !== "afgerond" && totalChecklistItems > 0 && (
                       <span className="progress-count">
                         {doneChecklistItems}/{totalChecklistItems} taken
                       </span>
                     )}
-                    {projectUrgency.daysLeft !== null && (
+                    {status !== "afgerond" && projectUrgency.daysLeft !== null && (
                       <span className={onSchedule ? "ontime" : "late"}>
                         {onSchedule ? "op schema" : `${Math.abs(projectUrgency.daysLeft)}d te laat`}
                       </span>
                     )}
-                    {currentPhase && (
+                    {status !== "afgerond" && currentPhase && (
                       <span>
                         {currentPhase.code} · {formatDeadline(projectUrgency.daysLeft, projectUrgency.deadline)}
                       </span>
@@ -422,63 +434,67 @@ export default function FaseTracker({
             onStartPhase={(phase) => onStartPhase?.(phase, view.project.name)}
             onSetPhaseStatus={onSetPhaseStatus}
             onSetPhaseDates={onSetPhaseDates}
+            centerFooter={
+              <>
+                <div className="adhoc-bar">
+                  <div className="adhoc-summary">
+                    {view.adhocTasks.length > 0 ? (
+                      <>
+                        <strong>{view.adhocTasks.length} ad-hoc taken</strong>{" "}
+                        (buiten fase-structuur):{" "}
+                        {view.adhocTasks.slice(0, 3).map((t) => t.subject.trim()).join(" · ")}
+                        {view.adhocTasks.length > 3 ? " …" : ""}
+                      </>
+                    ) : (
+                      <span className="adhoc-empty">Geen ad-hoc taken</span>
+                    )}
+                  </div>
+                  {onAddAdhocTask && !adhocOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setAdhocOpen(true)}
+                      className="adhoc-add-btn"
+                    >
+                      + Ad-hoc taak
+                    </button>
+                  )}
+                </div>
+                {adhocOpen && onAddAdhocTask && (
+                  <div className="adhoc-form">
+                    <input
+                      type="text"
+                      autoFocus
+                      value={adhocDraft}
+                      onChange={(e) => setAdhocDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); submitAdhoc(); }
+                        if (e.key === "Escape") { e.preventDefault(); setAdhocOpen(false); setAdhocDraft(""); }
+                      }}
+                      placeholder="Onderwerp ad-hoc taak…"
+                      disabled={adhocSaving}
+                      className="adhoc-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={submitAdhoc}
+                      disabled={adhocSaving || !adhocDraft.trim()}
+                      className="adhoc-submit-btn"
+                    >
+                      {adhocSaving ? "…" : "Toevoegen"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setAdhocOpen(false); setAdhocDraft(""); }}
+                      disabled={adhocSaving}
+                      className="adhoc-cancel-btn"
+                    >
+                      Annuleren
+                    </button>
+                  </div>
+                )}
+              </>
+            }
           />
-          <div className="adhoc-bar">
-            <div className="adhoc-summary">
-              {view.adhocTasks.length > 0 ? (
-                <>
-                  <strong>{view.adhocTasks.length} ad-hoc taken</strong>{" "}
-                  (buiten fase-structuur):{" "}
-                  {view.adhocTasks.slice(0, 3).map((t) => t.subject.trim()).join(" · ")}
-                  {view.adhocTasks.length > 3 ? " …" : ""}
-                </>
-              ) : (
-                <span className="adhoc-empty">Geen ad-hoc taken</span>
-              )}
-            </div>
-            {onAddAdhocTask && !adhocOpen && (
-              <button
-                type="button"
-                onClick={() => setAdhocOpen(true)}
-                className="adhoc-add-btn"
-              >
-                + Ad-hoc taak
-              </button>
-            )}
-          </div>
-          {adhocOpen && onAddAdhocTask && (
-            <div className="adhoc-form">
-              <input
-                type="text"
-                autoFocus
-                value={adhocDraft}
-                onChange={(e) => setAdhocDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") { e.preventDefault(); submitAdhoc(); }
-                  if (e.key === "Escape") { e.preventDefault(); setAdhocOpen(false); setAdhocDraft(""); }
-                }}
-                placeholder="Onderwerp ad-hoc taak…"
-                disabled={adhocSaving}
-                className="adhoc-input"
-              />
-              <button
-                type="button"
-                onClick={submitAdhoc}
-                disabled={adhocSaving || !adhocDraft.trim()}
-                className="adhoc-submit-btn"
-              >
-                {adhocSaving ? "…" : "Toevoegen"}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setAdhocOpen(false); setAdhocDraft(""); }}
-                disabled={adhocSaving}
-                className="adhoc-cancel-btn"
-              >
-                Annuleren
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>

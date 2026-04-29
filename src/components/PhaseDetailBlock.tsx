@@ -129,13 +129,16 @@ export default function PhaseDetailBlock({
           ) : (
             <span>{phase.dates.start ?? "?"} → {phase.dates.end ?? "?"}</span>
           )}
-          {urgency && urgency.level !== "none" && urgency.daysLeft !== null && (
-            <span className={urgencyTextClass(urgency.level)}>
-              {urgency.daysLeft < 0
-                ? `${Math.abs(urgency.daysLeft)}d te laat`
-                : `nog ${urgency.daysLeft}d`}
-            </span>
-          )}
+          {urgency && urgency.level !== "none" && urgency.daysLeft !== null
+            && rawStatus?.toLowerCase() !== "completed"
+            && rawStatus?.toLowerCase() !== "cancelled"
+            && (
+              <span className={urgencyTextClass(urgency.level)}>
+                {urgency.daysLeft < 0
+                  ? `${Math.abs(urgency.daysLeft)}d te laat`
+                  : `nog ${urgency.daysLeft}d`}
+              </span>
+            )}
         </div>
       )}
       <div className="text-[11px] text-gray-400 mt-1">

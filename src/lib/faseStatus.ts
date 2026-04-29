@@ -13,7 +13,8 @@ export type FaseTrackerStatus =
   | "wachten"
   | "controle"
   | "ingepland"
-  | "hold";
+  | "hold"
+  | "afgerond";
 
 export type FaseTrackerPosition = "done" | "current" | "future";
 
@@ -74,12 +75,23 @@ export function trackerStatus(
   currentIndex: number,
   rawStatusByTaskName?: Map<string, string>,
 ): FaseTrackerStatus {
+  // Project volledig afgerond: alle fases compleet/afgerond.
+  if (
+    view.phases.length > 0 &&
+    view.phases.every((p) => p.status === "compleet" || p.status === "afgerond")
+  ) {
+    return "afgerond";
+  }
+
   if (view.classification.bucket === "on-hold") return "hold";
 
   const phase = view.phases[currentIndex];
   if (!phase) return "ingepland";
 
   const raw = (rawStatusByTaskName?.get(phase.taskName) ?? "").toLowerCase();
+  // Huidige fase staat op Completed/Cancelled raw → behandel als afgerond
+  // (anders blijft tracker "ingepland" tonen na het afsluiten van de laatste fase).
+  if (raw === "completed" || raw === "cancelled") return "afgerond";
   if (raw === "pending review") return "wachten";
 
   // Overgang vóór de huidige fase — open START-subtasks of open controle-items

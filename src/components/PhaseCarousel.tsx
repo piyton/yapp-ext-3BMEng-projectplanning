@@ -3,6 +3,7 @@
  * Inhoud per block is ofwel PhaseDetailBlock ofwel TransitionBlock.
  */
 
+import type { ReactNode } from "react";
 import type { CarouselItem } from "../lib/faseTimeline";
 import PhaseDetailBlock from "./PhaseDetailBlock";
 import TransitionBlock from "./TransitionBlock";
@@ -26,6 +27,8 @@ interface Props {
   onStartPhase?: (phase: Phase) => void;
   onSetPhaseStatus?: (phase: Phase, status: string) => void;
   onSetPhaseDates?: (phase: Phase, expStart: string | null, expEnd: string | null) => void;
+  /** Slot direct onder de mid-kolom-kaart, uitgelijnd op dezelfde breedte. */
+  centerFooter?: ReactNode;
 }
 
 interface RenderOpts {
@@ -79,6 +82,7 @@ export default function PhaseCarousel({
   items, activeIndex, onNavigate, erpnextUrl, settings, rawStatusByTaskName,
   onToggleChecklist, onEditChecklistText, onToggleSubtask, onEditSubtask,
   onStartPhase, onSetPhaseStatus, onSetPhaseDates,
+  centerFooter,
 }: Props) {
   if (items.length === 0) return null;
   const prev = activeIndex > 0 ? items[activeIndex - 1] : null;
@@ -118,8 +122,9 @@ export default function PhaseCarousel({
 
       {navBtn("prev", !!prev, "Vorige", "◀")}
 
-      <div className="flex-[1.6] min-w-0">
+      <div className="flex-[1.6] min-w-0 flex flex-col">
         {renderItem(current, { faded: false, erpnextUrl, settings, rawStatusByTaskName, handlers })}
+        {centerFooter}
       </div>
 
       {navBtn("next", !!next, "Volgende", "▶")}
