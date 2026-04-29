@@ -213,7 +213,9 @@ export default function Projectplanning() {
           (v.project.customer ?? "").toLowerCase().includes(q)
         );
       })
-      .sort((a, b) => b.classification.urgencyScore - a.classification.urgencyScore);
+      .sort((a, b) =>
+        a.project.name.localeCompare(b.project.name, undefined, { numeric: true, sensitivity: "base" })
+      );
   }, [views, bucket, taskStatusFilter, currentTaskStatusByView, search]);
 
   return (
