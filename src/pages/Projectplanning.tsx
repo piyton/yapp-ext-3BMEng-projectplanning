@@ -214,7 +214,7 @@ export default function Projectplanning() {
         );
       })
       .sort((a, b) =>
-        a.project.name.localeCompare(b.project.name, undefined, { numeric: true, sensitivity: "base" })
+        b.project.name.localeCompare(a.project.name, undefined, { numeric: true, sensitivity: "base" })
       );
   }, [views, bucket, taskStatusFilter, currentTaskStatusByView, search]);
 
