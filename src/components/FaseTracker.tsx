@@ -280,9 +280,6 @@ export default function FaseTracker({
       <div className="row-head">
         <div className="meta" onClick={toggleRow}>
           <span className="chev">{expanded ? "▾" : "▸"}</span>
-          <span className="badge" title={view.template === "none" ? "Geen template" : view.template}>
-            {templateBadgeLabel(view.template)}
-          </span>
           <button
             type="button"
             className="num"
@@ -320,70 +317,79 @@ export default function FaseTracker({
               · {view.project.customer}
             </span>
           )}
+          <span className="badge" title={view.template === "none" ? "Geen template" : view.template}>
+            {templateBadgeLabel(view.template)}
+          </span>
         </div>
 
         {view.phases.length === 0 ? (
-          <div className="tracker tracker-empty">
-            <span className="status-pill empty">Geen fase-template</span>
-            <span className="empty-detail">
-              {view.adhocTasks.length > 0
-                ? `${view.adhocTasks.length} losse ${view.adhocTasks.length === 1 ? "taak" : "taken"}`
-                : "geen taken"}
-            </span>
-          </div>
+          <>
+            <span className={`status-pill empty status-pill-col`}>Geen fase-template</span>
+            <div className="tracker tracker-empty">
+              <span className="empty-detail">
+                {view.adhocTasks.length > 0
+                  ? `${view.adhocTasks.length} losse ${view.adhocTasks.length === 1 ? "taak" : "taken"}`
+                  : "geen taken"}
+              </span>
+            </div>
+          </>
         ) : (
-          <div className="tracker">
-            <div className="bar">
-              {geom.doneWidth > 0 && (
-                <div className="bar-done" style={{ width: `${geom.doneWidth}%` }} />
+          <>
+            <span className={`status-pill ${status} status-pill-col`} onClick={toggleRow}>
+              <StatusIcon status={status} />
+              {STATUS_LABEL[status]}
+            </span>
+            <div className="tracker">
+              <div className="bar">
+                {geom.doneWidth > 0 && (
+                  <div className="bar-done" style={{ width: `${geom.doneWidth}%` }} />
+                )}
+                {geom.activeWidth > 0 && (
+                  <div
+                    className={`bar-active ${activeRoundClass}`}
+                    style={{ left: `${geom.activeLeft}%`, width: `${geom.activeWidth}%` }}
+                  />
+                )}
+              </div>
+              <div className="phases">
+                {railItems.map((item) => (
+                  <PhaseBubble
+                    key={item.phase.code}
+                    item={item}
+                    currentIndex={curIdx}
+                    selectedPhaseIndex={selectedPhaseIndex}
+                    status={status}
+                    onClick={() => selectPhase(item.phaseIndex)}
+                  />
+                ))}
+              </div>
+              {expanded && (
+                <div className="status-line">
+                  <span className="status-detail">
+                    {detail.lead}{" "}
+                    {detail.who && <span className="who">{detail.who}</span>}
+                  </span>
+                  <span className="status-meta">
+                    {totalChecklistItems > 0 && (
+                      <span className="progress-count">
+                        {doneChecklistItems}/{totalChecklistItems} taken
+                      </span>
+                    )}
+                    {projectUrgency.daysLeft !== null && (
+                      <span className={onSchedule ? "ontime" : "late"}>
+                        {onSchedule ? "op schema" : `${Math.abs(projectUrgency.daysLeft)}d te laat`}
+                      </span>
+                    )}
+                    {currentPhase && (
+                      <span>
+                        {currentPhase.code} · {formatDeadline(projectUrgency.daysLeft, projectUrgency.deadline)}
+                      </span>
+                    )}
+                  </span>
+                </div>
               )}
-              {geom.activeWidth > 0 && (
-                <div
-                  className={`bar-active ${activeRoundClass}`}
-                  style={{ left: `${geom.activeLeft}%`, width: `${geom.activeWidth}%` }}
-                />
-              )}
             </div>
-            <div className="phases">
-              {railItems.map((item) => (
-                <PhaseBubble
-                  key={item.phase.code}
-                  item={item}
-                  currentIndex={curIdx}
-                  selectedPhaseIndex={selectedPhaseIndex}
-                  status={status}
-                  onClick={() => selectPhase(item.phaseIndex)}
-                />
-              ))}
-            </div>
-            <div className="status-line">
-              <span className={`status-pill ${status}`}>
-                <StatusIcon status={status} />
-                {STATUS_LABEL[status]}
-              </span>
-              <span className="status-detail">
-                {detail.lead}{" "}
-                {detail.who && <span className="who">{detail.who}</span>}
-              </span>
-              <span className="status-meta">
-                {totalChecklistItems > 0 && (
-                  <span className="progress-count">
-                    {doneChecklistItems}/{totalChecklistItems} taken
-                  </span>
-                )}
-                {projectUrgency.daysLeft !== null && (
-                  <span className={onSchedule ? "ontime" : "late"}>
-                    {onSchedule ? "op schema" : `${Math.abs(projectUrgency.daysLeft)}d te laat`}
-                  </span>
-                )}
-                {currentPhase && (
-                  <span>
-                    {currentPhase.code} · {formatDeadline(projectUrgency.daysLeft, projectUrgency.deadline)}
-                  </span>
-                )}
-              </span>
-            </div>
-          </div>
+          </>
         )}
       </div>
 

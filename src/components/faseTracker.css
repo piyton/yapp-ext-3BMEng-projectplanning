@@ -54,35 +54,30 @@
   box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 12px 36px rgba(0,0,0,.08);
 }
 
+/* 3-koloms grid: project-meta | status-pill | tracker (rail).
+ * status-pill heeft een vaste min-width zodat hij bij elke rij op dezelfde
+ * positie begint en de tracker-kolom dus ook altijd op dezelfde x start. */
 .row-head {
   display: grid;
-  grid-template-columns: 45% 55%;
-  align-items: start;
-  gap: 14px;
-  padding: 14px 18px 10px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.2fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px 8px;
 }
 
-/* Meta-kolom is een grid met vaste kolommen zodat de CLT/VL-badge en het
- * project-num bij elke rij op exact dezelfde x-positie staan, ongeacht
- * project-titel-lengte. */
+/* Meta-kolom volgorde: chev | num | title | client (ellipsis) | badge.
+ * num + title staan eerst zodat ze de meeste ruimte krijgen; client krimpt
+ * met ellipsis; badge staat altijd uiterst rechts in de kolom. */
 .row-card .meta {
   display: grid;
-  grid-template-columns: 12px 38px 64px minmax(0, 1fr) auto;
+  grid-template-columns: 12px 64px minmax(0, auto) minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
   cursor: pointer;
-  padding-top: 4px;
 }
 .row-card .meta .chev {
   color: var(--ink-mute); font-size: 11px; line-height: 1;
-}
-.row-card .meta .badge {
-  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
-  background: #1a1a1a; color: #fff;
-  padding: 2px 5px; border-radius: 3px;
-  text-align: center;
-  justify-self: start;
 }
 .row-card .meta .num  {
   font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink);
@@ -95,6 +90,7 @@
   font-size: 12px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   min-width: 0;
+  max-width: 100%;
 }
 .row-card .meta .client-inline {
   color: var(--ink-mute);
@@ -102,20 +98,36 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 140px;
+  min-width: 0;
+}
+.row-card .meta .badge {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+  background: #1a1a1a; color: #fff;
+  padding: 2px 5px; border-radius: 3px;
+  text-align: center;
+  justify-self: end;
+}
+
+/* Status-pill als eigen midden-kolom (vóór de tracker, niet eronder). */
+.row-card .status-pill-col {
+  align-self: center;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 92px;
+  justify-content: center;
 }
 
 
 /* === TRACKER: rail + phases === */
-.row-card .tracker { position: relative; padding: 22px 8px 4px; }
+.row-card .tracker { position: relative; padding: 18px 8px 2px; }
 
 /* Empty-state: project zonder fase-template krijgt geen rail/bubbles. */
 .row-card .tracker.tracker-empty {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 8px;
-  min-height: 38px;
+  padding: 6px 8px;
+  min-height: 30px;
 }
-.row-card .tracker-empty .status-pill.empty {
+.row-card .status-pill.empty {
   background: var(--line);
   color: var(--ink-mute);
   font-weight: 500;
@@ -386,12 +398,13 @@
 }
 
 
-/* === STATUS LINE (onder tracker, in tracker-kolom) === */
+/* === STATUS LINE (onder tracker, in tracker-kolom) — alleen zichtbaar als
+ * de carousel open is (zie FaseTracker.tsx: render alleen bij `expanded`). */
 .row-card .status-line {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 4px 4px;
+  padding: 10px 4px 2px;
   font-size: 11.5px;
   flex-wrap: wrap;
 }
