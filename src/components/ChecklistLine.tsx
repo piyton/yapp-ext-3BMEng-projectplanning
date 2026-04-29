@@ -42,18 +42,78 @@ function Checkbox({ checked, onChange, variant = "default" }: CheckboxProps) {
 interface ChecklistLineProps {
   item: ChecklistItem;
   onToggle?: (item: ChecklistItem, nextDone: boolean) => void;
+  onEditText?: (item: ChecklistItem, newText: string) => void;
 }
 
-export function ChecklistLine({ item, onToggle }: ChecklistLineProps) {
+export function ChecklistLine({ item, onToggle, onEditText }: ChecklistLineProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(item.label);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  useEffect(() => { setDraft(item.label); }, [item.label]);
+
+  const commit = () => {
+    const next = draft.trim();
+    if (next && next !== item.label) {
+      onEditText?.(item, next);
+    }
+    setEditing(false);
+  };
+  const cancel = () => { setDraft(item.label); setEditing(false); };
+
   return (
-    <li className="flex items-start gap-2 py-0.5">
+    <li className="flex items-start gap-2 py-0.5 group">
       <Checkbox
         checked={item.done}
         onChange={onToggle ? (next) => onToggle(item, next) : undefined}
       />
-      <span className={`text-xs ${item.done ? "line-through text-gray-400" : "text-gray-700"}`}>
-        {item.label}
-      </span>
+      {editing && onEditText ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); commit(); }
+            if (e.key === "Escape") { e.preventDefault(); cancel(); }
+          }}
+          className="flex-1 text-xs border border-purple-3bm/40 rounded px-1 py-[1px] focus:outline-none focus:border-purple-3bm"
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <span
+          className={`flex-1 text-xs ${item.done ? "line-through text-gray-400" : "text-gray-700"} ${
+            onEditText ? "cursor-text hover:bg-gray-50 rounded px-0.5" : ""
+          }`}
+          onClick={(e) => {
+            if (!onEditText) return;
+            e.stopPropagation();
+            setEditing(true);
+          }}
+          title={onEditText ? "Klik om te bewerken" : undefined}
+        >
+          {item.label}
+        </span>
+      )}
+      {onEditText && !editing && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+          className="text-[10px] text-gray-300 hover:text-purple-3bm px-1 opacity-0 group-hover:opacity-100"
+          title="Bewerk"
+          aria-label="Bewerk"
+        >
+          ✎
+        </button>
+      )}
     </li>
   );
 }

@@ -12,10 +12,12 @@ interface Props {
   faded?: boolean;
   erpnextUrl?: string | null;
   onToggleChecklist?: (item: ChecklistItem, nextDone: boolean) => void;
+  onEditChecklistText?: (item: ChecklistItem, newText: string) => void;
   onToggleSubtask?: (subtask: SubtaskItem, nextDone: boolean) => void;
   onEditSubtask?: (subtask: SubtaskItem, newSubject: string) => void;
   onStartPhase?: (phase: Phase) => void;
   onSetPhaseStatus?: (phase: Phase, status: string) => void;
+  onSetPhaseDates?: (phase: Phase, expStart: string | null, expEnd: string | null) => void;
   /** Raw Task.status voor deze fase (zodat dropdown de juiste waarde toont). */
   rawStatus?: string;
   urgency?: UrgencyInfo;
@@ -55,8 +57,9 @@ function urgencyTextClass(level: UrgencyInfo["level"]): string {
 
 export default function PhaseDetailBlock({
   phase, faded, erpnextUrl,
-  onToggleChecklist, onToggleSubtask, onEditSubtask,
-  onStartPhase, onSetPhaseStatus,
+  onToggleChecklist, onEditChecklistText,
+  onToggleSubtask, onEditSubtask,
+  onStartPhase, onSetPhaseStatus, onSetPhaseDates,
   rawStatus,
   urgency,
 }: Props) {
@@ -101,11 +104,33 @@ export default function PhaseDetailBlock({
           ▶ Start deze fase
         </button>
       )}
-      {(phase.dates.start || phase.dates.end) && (
-        <div className="text-[11px] text-gray-500 mt-0.5">
-          {phase.dates.start ?? "?"} → {phase.dates.end ?? "?"}
+      {(phase.dates.start || phase.dates.end || onSetPhaseDates) && (
+        <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+          {onSetPhaseDates ? (
+            <>
+              <input
+                type="date"
+                value={phase.dates.start ?? ""}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => onSetPhaseDates(phase, e.target.value || null, phase.dates.end)}
+                className="text-[11px] border border-gray-200 rounded px-1 py-0 bg-white hover:border-purple-3bm/40 focus:outline-none focus:border-purple-3bm"
+                title="Verwacht start"
+              />
+              <span>→</span>
+              <input
+                type="date"
+                value={phase.dates.end ?? ""}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => onSetPhaseDates(phase, phase.dates.start, e.target.value || null)}
+                className="text-[11px] border border-gray-200 rounded px-1 py-0 bg-white hover:border-purple-3bm/40 focus:outline-none focus:border-purple-3bm"
+                title="Verwacht eind / deadline"
+              />
+            </>
+          ) : (
+            <span>{phase.dates.start ?? "?"} → {phase.dates.end ?? "?"}</span>
+          )}
           {urgency && urgency.level !== "none" && urgency.daysLeft !== null && (
-            <span className={`ml-2 ${urgencyTextClass(urgency.level)}`}>
+            <span className={urgencyTextClass(urgency.level)}>
               {urgency.daysLeft < 0
                 ? `${Math.abs(urgency.daysLeft)}d te laat`
                 : `nog ${urgency.daysLeft}d`}
@@ -143,7 +168,7 @@ export default function PhaseDetailBlock({
           </div>
           <ul className="list-none">
             {phase.startVereiste.map((i) => (
-              <ChecklistLine key={i.id} item={i} onToggle={onToggleChecklist} />
+              <ChecklistLine key={i.id} item={i} onToggle={onToggleChecklist} onEditText={onEditChecklistText} />
             ))}
           </ul>
         </section>
@@ -156,7 +181,7 @@ export default function PhaseDetailBlock({
           </div>
           <ul className="list-none">
             {phase.werk.map((i) => (
-              <ChecklistLine key={i.id} item={i} onToggle={onToggleChecklist} />
+              <ChecklistLine key={i.id} item={i} onToggle={onToggleChecklist} onEditText={onEditChecklistText} />
             ))}
           </ul>
         </section>
@@ -169,7 +194,7 @@ export default function PhaseDetailBlock({
           </div>
           <ul className="list-none">
             {phase.controle.map((i) => (
-              <ChecklistLine key={i.id} item={i} onToggle={onToggleChecklist} />
+              <ChecklistLine key={i.id} item={i} onToggle={onToggleChecklist} onEditText={onEditChecklistText} />
             ))}
           </ul>
         </section>

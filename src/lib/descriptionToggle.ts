@@ -122,6 +122,54 @@ export function toggleChecklistItemInHtml(
 }
 
 /**
+ * Vervang de tekst van één checklist-item in de description-HTML.
+ * Behoudt eventuele Quill `<span class="ql-ui">` markers binnen het `<li>`;
+ * vervangt enkel de visuele tekst-content.
+ *
+ * Gooit een error als het item niet gevonden wordt.
+ */
+export function setChecklistItemTextInHtml(
+  html: string,
+  section: string,
+  itemIndex: number,
+  newText: string,
+): string {
+  if (typeof DOMParser === "undefined") {
+    return setChecklistItemTextFallback(html, section, itemIndex, newText);
+  }
+
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const root = doc.body;
+
+  const category = section as Category;
+  const index = indexChecklistItems(root);
+  const list = index[category];
+
+  if (!list || !list[itemIndex]) {
+    throw new Error(
+      `setChecklistItemTextInHtml: item niet gevonden (section="${section}", index=${itemIndex}, found=${list?.length ?? 0})`,
+    );
+  }
+
+  const li = list[itemIndex];
+  // Verwijder alle children behalve eventuele Quill ql-ui spans (markers).
+  const preserved: Element[] = [];
+  for (const child of Array.from(li.childNodes)) {
+    if (
+      child.nodeType === 1 &&
+      (child as Element).tagName.toLowerCase() === "span" &&
+      ((child as Element).getAttribute("class") || "").includes("ql-ui")
+    ) {
+      preserved.push(child as Element);
+    }
+    li.removeChild(child);
+  }
+  for (const span of preserved) li.appendChild(span);
+  li.appendChild(doc.createTextNode(newText));
+  return root.innerHTML;
+}
+
+/**
  * Zet alle `<li data-list="unchecked">` om naar `"checked"`. Gebruikt
  * wanneer een task op Completed gezet wordt — alle sub-checkboxes in de
  * description worden dan ook visueel afgevinkt.
@@ -202,4 +250,73 @@ function toggleChecklistItemFallback(
 
 function stripTags(s: string): string {
   return s.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Regex-fallback voor setChecklistItemTextInHtml. */
+function setChecklistItemTextFallback(
+  html: string,
+  section: string,
+  itemIndex: number,
+  newText: string,
+): string {
+  const tokenRegex = /<(h[1-5])[^>]*>(.*?)<\/\1>|<li([^>]*data-list="([^"]*)"[^>]*)>(.*?)<\/li>/gis;
+
+  const category = section as Category;
+  type Hit = { start: number; end: number; attrs: string; inner: string };
+  const hits: Record<Category, Hit[]> = { startInfo: [], controle: [], werk: [] };
+  const werkHeaderHits: Hit[] = [];
+  const uncategorisedHits: Hit[] = [];
+
+  let currentCategory: Category | null = null;
+  let inHeaderedSection = false;
+
+  let match: RegExpExecArray | null;
+  while ((match = tokenRegex.exec(html)) !== null) {
+    if (match[1]) {
+      currentCategory = categoryForHeader(stripTags(match[2]).trim());
+      inHeaderedSection = true;
+      continue;
+    }
+    const text = stripTags(match[5]).trim();
+    if (!text) continue;
+    const hit: Hit = {
+      start: match.index,
+      end: match.index + match[0].length,
+      attrs: match[3],
+      inner: match[5],
+    };
+    if (!inHeaderedSection || currentCategory === null) {
+      uncategorisedHits.push(hit);
+    } else if (currentCategory === "werk") {
+      werkHeaderHits.push(hit);
+    } else {
+      hits[currentCategory].push(hit);
+    }
+  }
+  hits.werk = [...werkHeaderHits, ...uncategorisedHits];
+
+  const target = hits[category]?.[itemIndex];
+  if (!target) {
+    throw new Error(
+      `setChecklistItemTextFallback: item niet gevonden (section="${section}", index=${itemIndex})`,
+    );
+  }
+
+  // Behoud Quill ql-ui spans uit de original inner.
+  const qlUiMatches = target.inner.match(/<span[^>]*class="[^"]*ql-ui[^"]*"[^>]*>.*?<\/span>/gis) || [];
+  const newInner = qlUiMatches.join("") + escapeHtml(newText);
+  return (
+    html.slice(0, target.start) +
+    `<li${target.attrs}>${newInner}</li>` +
+    html.slice(target.end)
+  );
 }

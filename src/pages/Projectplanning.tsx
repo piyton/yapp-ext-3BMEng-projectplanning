@@ -365,6 +365,11 @@ export default function Projectplanning() {
               const task = tasks.find((t) => t.name === taskName);
               if (task) mutations.toggleChecklistItem(task, item, next);
             }}
+            onEditChecklistText={(item, newText) => {
+              const taskName = item.source.taskName;
+              const task = tasks.find((t) => t.name === taskName);
+              if (task) mutations.updateChecklistItemText(task, item, newText);
+            }}
             onToggleSubtask={(subtask, next) => {
               const task = tasks.find((t) => t.name === subtask.taskName);
               if (task) mutations.toggleDone(task, next);
@@ -396,6 +401,10 @@ export default function Projectplanning() {
             onSetPhaseStatus={(phase, status) => {
               const target = tasks.find((t) => t.name === phase.taskName);
               if (target) mutations.setStatus(target, status);
+            }}
+            onSetPhaseDates={(phase, expStart, expEnd) => {
+              const target = tasks.find((t) => t.name === phase.taskName);
+              if (target) mutations.setDates(target, expStart, expEnd);
             }}
             onAddAdhocTask={async (projectName, subject) => {
               await createDocument("Task", {

@@ -449,6 +449,70 @@
   font-size: 12px; color: var(--ink-mute); font-style: italic;
 }
 
+/* Ad-hoc taken-balk onder de carousel — links uitgelijnd, knop op nieuwe regel
+ * onder het taken-overzicht (niet meer rechts naast). */
+.row-card .adhoc-bar {
+  padding: 12px 20px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-mute);
+  align-items: flex-start;
+}
+.row-card .adhoc-summary {
+  width: 100%;
+}
+.row-card .adhoc-empty {
+  font-style: italic;
+}
+.row-card .adhoc-add-btn {
+  font-size: 11px;
+  padding: 3px 12px;
+  border: 1px solid var(--select);
+  background: transparent;
+  color: var(--select);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.row-card .adhoc-add-btn:hover {
+  background: var(--select);
+  color: #fff;
+}
+.row-card .adhoc-form {
+  padding: 0 20px 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.row-card .adhoc-input {
+  flex: 1;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+.row-card .adhoc-submit-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  background: var(--select);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.row-card .adhoc-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.row-card .adhoc-cancel-btn {
+  font-size: 11px;
+  color: var(--ink-mute);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
 /* Responsive: smal scherm → meta + tracker stapelen */
 @media (max-width: 900px) {
   .row-head { grid-template-columns: 1fr; gap: 10px; }

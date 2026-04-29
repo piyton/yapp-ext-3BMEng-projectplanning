@@ -20,10 +20,12 @@ interface Props {
   /** Raw ERPNext Task.status per fase-task. */
   rawStatusByTaskName?: Map<string, string>;
   onToggleChecklist?: (item: ChecklistItem, nextDone: boolean) => void;
+  onEditChecklistText?: (item: ChecklistItem, newText: string) => void;
   onToggleSubtask?: (subtask: SubtaskItem, nextDone: boolean) => void;
   onEditSubtask?: (subtask: SubtaskItem, newSubject: string) => void;
   onStartPhase?: (phase: Phase) => void;
   onSetPhaseStatus?: (phase: Phase, status: string) => void;
+  onSetPhaseDates?: (phase: Phase, expStart: string | null, expEnd: string | null) => void;
 }
 
 interface RenderOpts {
@@ -32,8 +34,9 @@ interface RenderOpts {
   settings: ProjectplanningSettings;
   rawStatusByTaskName?: Map<string, string>;
   handlers: Pick<Props,
-    "onToggleChecklist" | "onToggleSubtask" | "onEditSubtask" |
-    "onStartPhase" | "onSetPhaseStatus">;
+    "onToggleChecklist" | "onEditChecklistText" |
+    "onToggleSubtask" | "onEditSubtask" |
+    "onStartPhase" | "onSetPhaseStatus" | "onSetPhaseDates">;
 }
 
 function renderItem(item: CarouselItem, opts: RenderOpts) {
@@ -50,10 +53,12 @@ function renderItem(item: CarouselItem, opts: RenderOpts) {
         urgency={urgency}
         rawStatus={opts.rawStatusByTaskName?.get(item.phase.taskName)}
         onToggleChecklist={opts.handlers.onToggleChecklist}
+        onEditChecklistText={opts.faded ? undefined : opts.handlers.onEditChecklistText}
         onToggleSubtask={opts.handlers.onToggleSubtask}
         onEditSubtask={opts.handlers.onEditSubtask}
         onStartPhase={opts.faded ? undefined : opts.handlers.onStartPhase}
         onSetPhaseStatus={opts.faded ? undefined : opts.handlers.onSetPhaseStatus}
+        onSetPhaseDates={opts.faded ? undefined : opts.handlers.onSetPhaseDates}
       />
     );
   }
@@ -63,6 +68,7 @@ function renderItem(item: CarouselItem, opts: RenderOpts) {
       faded={opts.faded}
       erpnextUrl={opts.erpnextUrl}
       onToggleChecklist={opts.handlers.onToggleChecklist}
+      onEditChecklistText={opts.faded ? undefined : opts.handlers.onEditChecklistText}
       onToggleSubtask={opts.handlers.onToggleSubtask}
       onEditSubtask={opts.handlers.onEditSubtask}
     />
@@ -71,15 +77,19 @@ function renderItem(item: CarouselItem, opts: RenderOpts) {
 
 export default function PhaseCarousel({
   items, activeIndex, onNavigate, erpnextUrl, settings, rawStatusByTaskName,
-  onToggleChecklist, onToggleSubtask, onEditSubtask,
-  onStartPhase, onSetPhaseStatus,
+  onToggleChecklist, onEditChecklistText, onToggleSubtask, onEditSubtask,
+  onStartPhase, onSetPhaseStatus, onSetPhaseDates,
 }: Props) {
   if (items.length === 0) return null;
   const prev = activeIndex > 0 ? items[activeIndex - 1] : null;
   const current = items[activeIndex];
   const next = activeIndex < items.length - 1 ? items[activeIndex + 1] : null;
 
-  const handlers = { onToggleChecklist, onToggleSubtask, onEditSubtask, onStartPhase, onSetPhaseStatus };
+  const handlers = {
+    onToggleChecklist, onEditChecklistText,
+    onToggleSubtask, onEditSubtask,
+    onStartPhase, onSetPhaseStatus, onSetPhaseDates,
+  };
 
   const navBtn = (direction: "prev" | "next", enabled: boolean, label: string, glyph: string) => (
     <button

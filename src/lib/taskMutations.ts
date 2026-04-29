@@ -9,7 +9,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { updateDocument } from "./yappBridge";
-import { toggleChecklistItemInHtml, checkAllInHtml } from "./descriptionToggle";
+import { toggleChecklistItemInHtml, checkAllInHtml, setChecklistItemTextInHtml } from "./descriptionToggle";
 import type { ChecklistItem, TaskRecord } from "../types";
 
 export type TaskOverlay = Map<string, Partial<TaskRecord>>;
@@ -29,9 +29,11 @@ export interface TaskMutations {
   overlay: TaskOverlay;
   toggleDone: (task: TaskRecord, nextDone: boolean) => Promise<void>;
   toggleChecklistItem: (task: TaskRecord, item: ChecklistItem, nextDone: boolean) => Promise<void>;
+  updateChecklistItemText: (task: TaskRecord, item: ChecklistItem, newText: string) => Promise<void>;
   updateSubject: (task: TaskRecord, newSubject: string) => Promise<void>;
   setStatus: (task: TaskRecord, status: string) => Promise<void>;
   startPhase: (task: TaskRecord, otherWorking: TaskRecord[]) => Promise<void>;
+  setDates: (task: TaskRecord, expStart: string | null, expEnd: string | null) => Promise<void>;
   error: string | null;
   clearError: () => void;
 }
@@ -117,6 +119,39 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     }
   }, [apply, clear, onServerChange, overlay]);
 
+  /**
+   * Vervang de tekst van één checklist-item (sub-todo) in een task-description.
+   * Status van de Task blijft ongewijzigd.
+   */
+  const updateChecklistItemText = useCallback(async (
+    task: TaskRecord,
+    item: ChecklistItem,
+    newText: string,
+  ) => {
+    const trimmed = newText.trim();
+    if (!trimmed || trimmed === item.label) return;
+    const key = `${task.name}::${item.id}::text`;
+    if (inFlight.current.has(key)) return;
+    inFlight.current.add(key);
+    try {
+      const currentDesc = overlay.get(task.name)?.description ?? task.description ?? "";
+      const nextDesc = setChecklistItemTextInHtml(
+        currentDesc,
+        item.source.section,
+        item.source.itemIndex,
+        trimmed,
+      );
+      apply(task.name, { description: nextDesc });
+      await updateDocument("Task", task.name, { description: nextDesc });
+      onServerChange?.();
+    } catch (e) {
+      clear(task.name);
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      inFlight.current.delete(key);
+    }
+  }, [apply, clear, onServerChange, overlay]);
+
   const updateSubject = useCallback(async (task: TaskRecord, newSubject: string) => {
     const trimmed = newSubject.trim();
     if (!trimmed || trimmed === task.subject) return;
@@ -172,7 +207,50 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     }
   }, [apply, clear, onServerChange]);
 
+  /**
+   * Update verwacht-start en/of verwacht-eind van een Task. `null` betekent
+   * leeg laten (ERPNext accepteert lege string voor het wissen).
+   */
+  const setDates = useCallback(async (
+    task: TaskRecord,
+    expStart: string | null,
+    expEnd: string | null,
+  ) => {
+    if (expStart === task.exp_start_date && expEnd === task.exp_end_date) return;
+    const key = `${task.name}::dates`;
+    if (inFlight.current.has(key)) return;
+    inFlight.current.add(key);
+    const patch: Partial<TaskRecord> = {
+      exp_start_date: expStart,
+      exp_end_date: expEnd,
+    };
+    apply(task.name, patch);
+    try {
+      await updateDocument("Task", task.name, {
+        exp_start_date: expStart ?? "",
+        exp_end_date: expEnd ?? "",
+      });
+      onServerChange?.();
+    } catch (e) {
+      clear(task.name);
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      inFlight.current.delete(key);
+    }
+  }, [apply, clear, onServerChange]);
+
   const clearError = useCallback(() => setError(null), []);
 
-  return { overlay, toggleDone, toggleChecklistItem, updateSubject, setStatus, startPhase, error, clearError };
+  return {
+    overlay,
+    toggleDone,
+    toggleChecklistItem,
+    updateChecklistItemText,
+    updateSubject,
+    setStatus,
+    startPhase,
+    setDates,
+    error,
+    clearError,
+  };
 }

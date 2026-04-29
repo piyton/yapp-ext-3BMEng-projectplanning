@@ -14,6 +14,7 @@ interface Props {
   faded?: boolean;
   erpnextUrl?: string | null;
   onToggleChecklist?: (item: ChecklistItem, nextDone: boolean) => void;
+  onEditChecklistText?: (item: ChecklistItem, newText: string) => void;
   onToggleSubtask?: (subtask: SubtaskItem, nextDone: boolean) => void;
   onEditSubtask?: (subtask: SubtaskItem, newSubject: string) => void;
 }
@@ -28,7 +29,7 @@ function borderColor(status: Transition["status"]): string {
 
 export default function TransitionBlock({
   transition, faded, erpnextUrl,
-  onToggleChecklist, onToggleSubtask, onEditSubtask,
+  onToggleChecklist, onEditChecklistText, onToggleSubtask, onEditSubtask,
 }: Props) {
   const ctrlSubs = transition.subtasks.filter((s) => s.kind === "CTRL" || s.kind === null);
   const startSubs = transition.subtasks.filter((s) => s.kind === "START");
@@ -76,7 +77,7 @@ export default function TransitionBlock({
               />
             ))}
             {transition.controle.map((i) => (
-              <ChecklistLine key={i.id} item={i} onToggle={onToggleChecklist} />
+              <ChecklistLine key={i.id} item={i} onToggle={onToggleChecklist} onEditText={onEditChecklistText} />
             ))}
             {ctrlTotal === 0 && <li className="text-[11px] text-gray-400 italic">geen items</li>}
           </ul>
@@ -103,7 +104,7 @@ export default function TransitionBlock({
               />
             ))}
             {transition.startInfo.map((i) => (
-              <ChecklistLine key={i.id} item={i} onToggle={onToggleChecklist} />
+              <ChecklistLine key={i.id} item={i} onToggle={onToggleChecklist} onEditText={onEditChecklistText} />
             ))}
             {startTotal === 0 && <li className="text-[11px] text-gray-400 italic">geen items</li>}
           </ul>

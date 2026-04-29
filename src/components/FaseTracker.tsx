@@ -37,10 +37,12 @@ interface Props {
   userNames: Map<string, string>;
   rawStatusByTaskName?: Map<string, string>;
   onToggleChecklist?: (item: ChecklistItem, nextDone: boolean) => void;
+  onEditChecklistText?: (item: ChecklistItem, newText: string) => void;
   onToggleSubtask?: (subtask: SubtaskItem, nextDone: boolean) => void;
   onEditSubtask?: (subtask: SubtaskItem, newSubject: string) => void;
   onStartPhase?: (phase: Phase, projectName: string) => void;
   onSetPhaseStatus?: (phase: Phase, status: string) => void;
+  onSetPhaseDates?: (phase: Phase, expStart: string | null, expEnd: string | null) => void;
   onAddAdhocTask?: (projectName: string, subject: string) => Promise<void> | void;
 }
 
@@ -181,8 +183,10 @@ function PhaseBubble({
 
 export default function FaseTracker({
   view, erpnextUrl, settings, rawStatusByTaskName,
-  onToggleChecklist, onToggleSubtask, onEditSubtask,
-  onStartPhase, onSetPhaseStatus, onAddAdhocTask,
+  onToggleChecklist, onEditChecklistText,
+  onToggleSubtask, onEditSubtask,
+  onStartPhase, onSetPhaseStatus, onSetPhaseDates,
+  onAddAdhocTask,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [selectedPhaseIndex, setSelectedPhaseIndex] = useState<number | null>(null);
@@ -412,13 +416,15 @@ export default function FaseTracker({
             settings={settings}
             rawStatusByTaskName={rawStatusByTaskName}
             onToggleChecklist={onToggleChecklist}
+            onEditChecklistText={onEditChecklistText}
             onToggleSubtask={onToggleSubtask}
             onEditSubtask={onEditSubtask}
             onStartPhase={(phase) => onStartPhase?.(phase, view.project.name)}
             onSetPhaseStatus={onSetPhaseStatus}
+            onSetPhaseDates={onSetPhaseDates}
           />
-          <div style={{ padding: "10px 26px 18px", display: "flex", alignItems: "center", gap: 10, fontSize: 11, color: "var(--ink-mute)" }}>
-            <div style={{ flex: 1 }}>
+          <div className="adhoc-bar">
+            <div className="adhoc-summary">
               {view.adhocTasks.length > 0 ? (
                 <>
                   <strong>{view.adhocTasks.length} ad-hoc taken</strong>{" "}
@@ -427,26 +433,21 @@ export default function FaseTracker({
                   {view.adhocTasks.length > 3 ? " …" : ""}
                 </>
               ) : (
-                <span style={{ fontStyle: "italic" }}>Geen ad-hoc taken</span>
+                <span className="adhoc-empty">Geen ad-hoc taken</span>
               )}
             </div>
             {onAddAdhocTask && !adhocOpen && (
               <button
                 type="button"
                 onClick={() => setAdhocOpen(true)}
-                style={{
-                  fontSize: 11, padding: "2px 10px",
-                  border: "1px solid var(--select)",
-                  background: "transparent", color: "var(--select)",
-                  borderRadius: 4, cursor: "pointer",
-                }}
+                className="adhoc-add-btn"
               >
                 + Ad-hoc taak
               </button>
             )}
           </div>
           {adhocOpen && onAddAdhocTask && (
-            <div style={{ padding: "0 26px 14px", display: "flex", gap: 8, alignItems: "center" }}>
+            <div className="adhoc-form">
               <input
                 type="text"
                 autoFocus
@@ -458,23 +459,13 @@ export default function FaseTracker({
                 }}
                 placeholder="Onderwerp ad-hoc taak…"
                 disabled={adhocSaving}
-                style={{
-                  flex: 1, fontSize: 12,
-                  border: "1px solid var(--line)",
-                  borderRadius: 4, padding: "4px 8px",
-                }}
+                className="adhoc-input"
               />
               <button
                 type="button"
                 onClick={submitAdhoc}
                 disabled={adhocSaving || !adhocDraft.trim()}
-                style={{
-                  fontSize: 11, padding: "4px 10px",
-                  background: "var(--select)", color: "#fff",
-                  border: "none", borderRadius: 4,
-                  cursor: adhocSaving ? "default" : "pointer",
-                  opacity: adhocSaving || !adhocDraft.trim() ? 0.4 : 1,
-                }}
+                className="adhoc-submit-btn"
               >
                 {adhocSaving ? "…" : "Toevoegen"}
               </button>
@@ -482,10 +473,7 @@ export default function FaseTracker({
                 type="button"
                 onClick={() => { setAdhocOpen(false); setAdhocDraft(""); }}
                 disabled={adhocSaving}
-                style={{
-                  fontSize: 11, color: "var(--ink-mute)",
-                  background: "transparent", border: "none", cursor: "pointer",
-                }}
+                className="adhoc-cancel-btn"
               >
                 Annuleren
               </button>
