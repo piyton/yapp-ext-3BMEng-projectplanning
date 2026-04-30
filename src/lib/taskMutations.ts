@@ -65,8 +65,12 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
   const toggleDone = useCallback(async (task: TaskRecord, nextDone: boolean) => {
     if (inFlight.current.has(task.name)) return;
     inFlight.current.add(task.name);
+    const nextWorkflow = nextDone ? "Completed" : "Open";
     const nextStatus = nextDone ? "Completed" : "Open";
-    const patch: Partial<TaskRecord> = { status: nextStatus };
+    const patch: Partial<TaskRecord> = {
+      workflow_state: nextWorkflow,
+      status: nextStatus,
+    };
     if (nextDone) {
       // Pak de meest recente description uit de overlay (eerdere item-
       // toggles kunnen nog niet zijn teruggekomen via fetch).
@@ -75,12 +79,11 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     }
     apply(task.name, patch);
     try {
-      await updateDocument("Task", task.name, patch as Record<string, unknown>);
+      await updateDocument("Task", task.name, {
+        workflow_state: nextWorkflow,
+        ...(patch.description !== undefined ? { description: patch.description } : {}),
+      });
       onServerChange?.();
-      // Laat overlay nog even staan; de volgende fetch brengt de echte status
-      // binnen en we kunnen dan opschonen. Simpele aanpak: overlay clear zodra
-      // de volgende fetch is verwerkt — wordt gedaan door aanroeper via
-      // `clearOverlay()` (geen auto-clear hier).
     } catch (e) {
       clear(task.name);
       setError(humanizeFrappeError(e instanceof Error ? e.message : e));
@@ -170,18 +173,36 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     }
   }, [apply, clear, onServerChange]);
 
-  const setStatus = useCallback(async (task: TaskRecord, status: string) => {
-    if (task.status === status) return;
+  /**
+   * Zet de workflow_state van een Task. Het `status`-veld zelf is read-only
+   * en wordt door ERPNext afgeleid uit workflow_state. We schrijven dus naar
+   * `workflow_state`, en spiegelen lokaal het derived `status` in de overlay
+   * voor optimistic UI.
+   */
+  const setStatus = useCallback(async (task: TaskRecord, workflowState: string) => {
+    if (task.workflow_state === workflowState) return;
     if (inFlight.current.has(task.name)) return;
     inFlight.current.add(task.name);
-    const patch: Partial<TaskRecord> = { status };
-    if (status === "Completed") {
+    // Map workflow_state → derived status (alleen Completed/Cancelled wijken
+    // af; alle andere states mappen naar "Open").
+    const derivedStatus =
+      workflowState === "Completed" ? "Completed"
+        : workflowState === "Cancelled" ? "Cancelled"
+        : "Open";
+    const patch: Partial<TaskRecord> = {
+      workflow_state: workflowState,
+      status: derivedStatus,
+    };
+    if (workflowState === "Completed") {
       const currentDesc = overlay.get(task.name)?.description ?? task.description;
       if (currentDesc) patch.description = checkAllInHtml(currentDesc);
     }
     apply(task.name, patch);
     try {
-      await updateDocument("Task", task.name, patch as Record<string, unknown>);
+      await updateDocument("Task", task.name, {
+        workflow_state: workflowState,
+        ...(patch.description !== undefined ? { description: patch.description } : {}),
+      });
       onServerChange?.();
     } catch (e) {
       clear(task.name);
@@ -193,12 +214,14 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
 
   /** Zet één fase op Working, verschuift alle andere Working-fases in hetzelfde project naar Completed. */
   const startPhase = useCallback(async (task: TaskRecord, otherWorking: TaskRecord[]) => {
-    apply(task.name, { status: "Working" });
-    for (const other of otherWorking) apply(other.name, { status: "Completed" });
+    apply(task.name, { workflow_state: "Working", status: "Open" });
+    for (const other of otherWorking) {
+      apply(other.name, { workflow_state: "Completed", status: "Completed" });
+    }
     try {
       await Promise.all([
-        updateDocument("Task", task.name, { status: "Working" }),
-        ...otherWorking.map((o) => updateDocument("Task", o.name, { status: "Completed" })),
+        updateDocument("Task", task.name, { workflow_state: "Working" }),
+        ...otherWorking.map((o) => updateDocument("Task", o.name, { workflow_state: "Completed" })),
       ]);
       onServerChange?.();
     } catch (e) {

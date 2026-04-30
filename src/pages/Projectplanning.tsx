@@ -30,15 +30,18 @@ const BUCKETS: { id: Bucket; label: string }[] = [
   { id: "alles",    label: "Alles" },
 ];
 
-/** ERPNext Task-statussen die op een fase-task kunnen voorkomen. */
+/** Workflow-states uit het Task-workflow. Dit zijn de waarden die de
+ *  fase-task in zijn `workflow_state`-veld kan hebben. */
 const TASK_STATUSES = [
   "Open",
   "Working",
-  "Pending Review",
+  "Pending Review Intern",
+  "Pending Review Extern",
+  "Information required",
+  "to discussed",
+  "On Hold",
   "Completed",
   "Cancelled",
-  "Overdue",
-  "Template",
 ] as const;
 type TaskStatusFilter = (typeof TASK_STATUSES)[number] | "alles";
 
@@ -93,7 +96,8 @@ export default function Projectplanning() {
           "Task",
           [
             "name", "subject", "project", "parent_task", "is_group",
-            "status", "priority", "exp_start_date", "exp_end_date",
+            "status", "workflow_state", "priority",
+            "exp_start_date", "exp_end_date",
             "progress", "description", "modified", "_assign",
           ],
           [["project", "!=", ""]],
@@ -166,11 +170,16 @@ export default function Projectplanning() {
   }, [views]);
 
   /** Snelle lookup van raw Task.status (respecteert optimistic overlay). */
+  /** Snelle lookup van raw status. We prefereren workflow_state (matcht de
+   *  custom Task-workflow met o.a. Pending Review Intern/Extern) en vallen
+   *  terug op status. Optimistic overlay overschrijft beide. */
   const rawStatusByTaskName = useMemo(() => {
     const m = new Map<string, string>();
     for (const t of tasks) {
-      const override = mutations.overlay.get(t.name)?.status;
-      m.set(t.name, override ?? t.status);
+      const patch = mutations.overlay.get(t.name);
+      const ws = patch?.workflow_state ?? t.workflow_state;
+      const st = patch?.status ?? t.status;
+      m.set(t.name, ws ?? st ?? "");
     }
     return m;
   }, [tasks, mutations.overlay]);

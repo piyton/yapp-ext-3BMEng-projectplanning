@@ -92,7 +92,15 @@ export function trackerStatus(
   // Huidige fase staat op Completed/Cancelled raw → behandel als afgerond
   // (anders blijft tracker "ingepland" tonen na het afsluiten van de laatste fase).
   if (raw === "completed" || raw === "cancelled") return "afgerond";
-  if (raw === "pending review") return "wachten";
+  if (raw === "on hold") return "hold";
+  if (
+    raw === "pending review" ||
+    raw === "pending review intern" ||
+    raw === "pending review extern" ||
+    raw === "information required" ||
+    raw === "to discussed"
+  ) return "wachten";
+  if (raw === "working") return "actief";
 
   // Overgang vóór de huidige fase — open START-subtasks of open controle-items
   // betekent we wachten op input/controle voordat deze fase echt loopt.

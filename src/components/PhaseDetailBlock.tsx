@@ -23,7 +23,22 @@ interface Props {
   urgency?: UrgencyInfo;
 }
 
-const ERPNEXT_TASK_STATUSES = ["Open", "Working", "Pending Review", "Overdue", "Completed", "Cancelled"];
+/**
+ * Workflow-states uit het 3BM Task-workflow. Volgorde matcht de natuurlijke
+ * progressie: Open → Working → Pending Review (intern/extern) → Information
+ * required → to discussed → On Hold → Completed/Cancelled.
+ */
+const TASK_WORKFLOW_STATES = [
+  "Open",
+  "Working",
+  "Pending Review Intern",
+  "Pending Review Extern",
+  "Information required",
+  "to discussed",
+  "On Hold",
+  "Completed",
+  "Cancelled",
+];
 
 function phaseLabel(phase: Phase): string {
   const codeMap: Record<string, string> = {
@@ -64,7 +79,19 @@ export default function PhaseDetailBlock({
   urgency,
 }: Props) {
   const canStart = phase.status !== "actief" && phase.status !== "compleet" && phase.status !== "afgerond";
-  const currentStatus = rawStatus ?? (phase.status === "actief" ? "Working" : phase.status === "compleet" || phase.status === "afgerond" ? "Completed" : "Open");
+  // rawStatus is bij voorkeur de workflow_state (Pending Review Intern, etc.).
+  // Als het een legacy status (bv. "Overdue") is die niet in de workflow zit,
+  // mappen we naar de dichtstbijzijnde state zodat de dropdown geen lege
+  // waarde toont.
+  const fallbackStatus =
+    phase.status === "actief"
+      ? "Working"
+      : phase.status === "compleet" || phase.status === "afgerond"
+        ? "Completed"
+        : "Open";
+  const currentStatus = rawStatus && TASK_WORKFLOW_STATES.includes(rawStatus)
+    ? rawStatus
+    : fallbackStatus;
   const containerCls = `border-2 rounded-md p-3 h-full ${borderColor(phase.status)} ${
     faded ? "opacity-40 grayscale" : ""
   }`;
@@ -85,7 +112,7 @@ export default function PhaseDetailBlock({
             className="text-[10px] border border-gray-300 rounded px-1 py-0.5 bg-white"
             onClick={(e) => e.stopPropagation()}
           >
-            {ERPNEXT_TASK_STATUSES.map((s) => (
+            {TASK_WORKFLOW_STATES.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>

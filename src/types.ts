@@ -16,6 +16,10 @@ export interface TaskRecord {
   parent_task: string | null;
   is_group: 0 | 1;
   status: string;
+  /** Workflow state (Task heeft een workflow met o.a. Pending Review
+   *  Intern/Extern, Information required, On Hold). Aanwezig wanneer een
+   *  Task-workflow actief is. */
+  workflow_state: string | null;
   priority: string;
   exp_start_date: string | null;
   exp_end_date: string | null;
