@@ -256,8 +256,8 @@ export default function FaseTracker({
   };
 
   const selectPhase = (phaseIndex: number) => {
-    // Klik op de geselecteerde + huidige fase terwijl row open is → sluiten.
-    if (expanded && selectedPhaseIndex === phaseIndex && phaseIndex === curIdx) {
+    // Klik op de al geselecteerde fase terwijl de carousel open is → sluiten.
+    if (expanded && selectedPhaseIndex === phaseIndex) {
       setExpanded(false);
       setSelectedPhaseIndex(null);
       setSelectedCarouselIndex(null);
