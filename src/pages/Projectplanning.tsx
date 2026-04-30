@@ -437,12 +437,15 @@ export default function Projectplanning() {
       </footer>
 
       {mutations.error && (
-        <div className="fixed bottom-5 right-5 bg-red-600 text-white px-4 py-2 rounded shadow-lg text-sm flex items-center gap-3">
-          <span>Opslaan mislukt: {mutations.error}</span>
+        <div className="fixed bottom-5 right-5 max-w-[480px] bg-red-600 text-white px-4 py-3 rounded shadow-lg text-[12px] flex items-start gap-3">
+          <div className="flex-1 leading-snug">
+            <div className="font-semibold mb-0.5">Opslaan mislukt</div>
+            <div className="text-white/90 break-words">{mutations.error}</div>
+          </div>
           <button
             type="button"
             onClick={mutations.clearError}
-            className="text-white/80 hover:text-white"
+            className="text-white/80 hover:text-white text-base leading-none"
             aria-label="Sluit"
           >
             ×

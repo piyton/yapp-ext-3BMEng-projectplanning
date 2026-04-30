@@ -10,6 +10,7 @@
 import { useCallback, useRef, useState } from "react";
 import { updateDocument } from "./yappBridge";
 import { toggleChecklistItemInHtml, checkAllInHtml, setChecklistItemTextInHtml } from "./descriptionToggle";
+import { humanizeFrappeError } from "./errorFormat";
 import type { ChecklistItem, TaskRecord } from "../types";
 
 export type TaskOverlay = Map<string, Partial<TaskRecord>>;
@@ -82,7 +83,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
       // `clearOverlay()` (geen auto-clear hier).
     } catch (e) {
       clear(task.name);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(humanizeFrappeError(e instanceof Error ? e.message : e));
     } finally {
       inFlight.current.delete(task.name);
     }
@@ -113,7 +114,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
       onServerChange?.();
     } catch (e) {
       clear(task.name);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(humanizeFrappeError(e instanceof Error ? e.message : e));
     } finally {
       inFlight.current.delete(key);
     }
@@ -146,7 +147,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
       onServerChange?.();
     } catch (e) {
       clear(task.name);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(humanizeFrappeError(e instanceof Error ? e.message : e));
     } finally {
       inFlight.current.delete(key);
     }
@@ -163,7 +164,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
       onServerChange?.();
     } catch (e) {
       clear(task.name);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(humanizeFrappeError(e instanceof Error ? e.message : e));
     } finally {
       inFlight.current.delete(task.name);
     }
@@ -184,7 +185,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
       onServerChange?.();
     } catch (e) {
       clear(task.name);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(humanizeFrappeError(e instanceof Error ? e.message : e));
     } finally {
       inFlight.current.delete(task.name);
     }
@@ -203,7 +204,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
     } catch (e) {
       clear(task.name);
       for (const other of otherWorking) clear(other.name);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(humanizeFrappeError(e instanceof Error ? e.message : e));
     }
   }, [apply, clear, onServerChange]);
 
@@ -233,7 +234,7 @@ export function useTaskMutations(onServerChange?: () => void): TaskMutations {
       onServerChange?.();
     } catch (e) {
       clear(task.name);
-      setError(e instanceof Error ? e.message : String(e));
+      setError(humanizeFrappeError(e instanceof Error ? e.message : e));
     } finally {
       inFlight.current.delete(key);
     }
